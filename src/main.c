@@ -51,6 +51,8 @@ Tile Grid[COLUMN][ROW];
 Player Current_Player;
 Gamemode Current_Gamemode;
 
+Texture2D texture;
+
 // current grid design
 // 0,0 | 0,1 | 0,2
 // 1,0 | 1,1 | 1,2
@@ -76,6 +78,7 @@ void Init()
     PopulateGrid(EMPTY);
     Current_Player = PLAYER_ONE;
     Current_Gamemode = LOCAL;
+    texture = LoadTexture("assets/tictactoe.png");
 }
 
 // render update loop
@@ -150,13 +153,20 @@ void RenderTile(int x, int y, Tile tile)
     int y_coord = y * CELL_HEIGHT;
     int CELL_HALF_WIDTH = CELL_WIDTH / 2;
 
+    Rectangle destination = {x * CELL_WIDTH, y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT};
+    Rectangle source;
+
     switch (Grid[x][y])
     {
                 case CROSS:
-                    DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, GRAY);
+                    source = (Rectangle){0, 0, 100, 100};
+                    DrawTexturePro(texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+                    //DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, GRAY);
                     break;
                 case CIRCLE:
-                    DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, RED);
+                    source = (Rectangle){100, 0, 100, 100};
+                    DrawTexturePro(texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+                    //DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, RED);
                     break;
                 case EMPTY:
                     break;
