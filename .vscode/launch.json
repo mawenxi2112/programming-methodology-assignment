@@ -1,7 +1,30 @@
 {
     "configurations": [
         {
-            "name": "(lldb) Launch",
+            "name": "Debug Windows",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${fileBasenameNoExtension}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+              {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": false
+              }
+            ],
+            "windows": {
+              "miDebuggerPath": "C:/raylib/w64devkit/bin/gdb.exe",
+            },
+            "preLaunchTask": "build debug"
+        },
+        {
+            "name": "(lldb) Launch Mac",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/build_mac",

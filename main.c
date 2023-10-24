@@ -34,7 +34,7 @@ typedef struct Cell {
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
-void Init();    
+void Init();
 void UpdateRender();
 void UpdateGame();
 void RenderGrid();
