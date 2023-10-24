@@ -27,8 +27,8 @@ typedef struct Cell {
     Tile value;
 } Cell;
 
-#define COLUMN 3
-#define ROW 3
+#define COLUMN 5
+#define ROW 5
 #define SCREEN_WIDTH 600
 #define SCREEN_HEIGHT 600
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;

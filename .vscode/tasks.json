@@ -19,6 +19,14 @@
                     "BUILD_MODE=DEBUG"
                 ]
             },
+            "osx": {
+                "args": [
+                    "RAYLIB_PATH=/Users/wnxi/repos/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=${fileBasenameNoExtension}.c",
+                    "BUILD_MODE=DEBUG"
+                ]
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true

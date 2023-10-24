@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "Debug Windows",
+            "name": "Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/${fileBasenameNoExtension}",
@@ -20,6 +20,9 @@
             ],
             "windows": {
               "miDebuggerPath": "C:/raylib/w64devkit/bin/gdb.exe",
+            },
+            "osx": {
+              "MIMode": "lldb"
             },
             "preLaunchTask": "build debug"
         },
