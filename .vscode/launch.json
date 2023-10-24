@@ -19,9 +19,11 @@
               }
             ],
             "windows": {
+              "program": "${workspaceFolder}/${fileBasenameNoExtension}.exe",
               "miDebuggerPath": "C:/raylib/w64devkit/bin/gdb.exe",
             },
             "osx": {
+              "program": "${workspaceFolder}/${fileBasenameNoExtension}",
               "MIMode": "lldb"
             },
             "preLaunchTask": "build debug"
