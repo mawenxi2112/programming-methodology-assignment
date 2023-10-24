@@ -27,6 +27,13 @@ typedef struct Cell {
     Tile value;
 } Cell;
 
+#define COLUMN 3
+#define ROW 3
+#define SCREEN_WIDTH 600
+#define SCREEN_HEIGHT 600
+const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
+const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
+
 void Init();    
 void UpdateRender();
 void UpdateGame();
@@ -40,13 +47,8 @@ bool IsTilePlaceable(int x, int y);
 void PopulateGrid(Tile tile);
 Player CheckWinCondition();
 
-#define COLUMN 3
-#define ROW 3
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 600
-const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
-const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
-
+// global variables
+// try not to access grid directly
 Tile Grid[COLUMN][ROW];
 Player Current_Player;
 Gamemode Current_Gamemode;
