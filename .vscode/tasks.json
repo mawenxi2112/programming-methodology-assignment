@@ -14,7 +14,7 @@
                 "command": "mingw32-make.exe",
                 "args": [
                     "RAYLIB_PATH=C:/raylib/raylib",
-                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "PROJECT_NAME=bin/${fileBasenameNoExtension}_win.exe",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
                 ]
@@ -22,7 +22,7 @@
             "osx": {
                 "args": [
                     "RAYLIB_PATH=/Users/wnxi/repos/raylib",
-                    "PROJECT_NAME=bin/${fileBasenameNoExtension}",
+                    "PROJECT_NAME=bin/${fileBasenameNoExtension}_mac",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
                 ]
