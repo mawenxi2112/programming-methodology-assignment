@@ -19,27 +19,14 @@
               }
             ],
             "windows": {
-              "program": "${workspaceFolder}/${fileBasenameNoExtension}.exe",
+              "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}.exe",
               "miDebuggerPath": "C:/raylib/w64devkit/bin/gdb.exe",
             },
             "osx": {
-              "program": "${workspaceFolder}/${fileBasenameNoExtension}",
+              "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
               "MIMode": "lldb"
             },
             "preLaunchTask": "build debug"
-        },
-        {
-            "name": "(lldb) Launch Mac",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/build_mac",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "internalConsoleOptions": "openOnSessionStart",
-            "environment": [],
-            "externalConsole": true,
-            "MIMode": "lldb"
         }
     ],
     "version": "2.0.0"
