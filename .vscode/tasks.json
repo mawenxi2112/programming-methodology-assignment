@@ -29,7 +29,7 @@
             },
             "group": {
                 "kind": "build",
-                "isDefault": false
+                "isDefault": true
             },
             "problemMatcher": [
                 "$gcc"
