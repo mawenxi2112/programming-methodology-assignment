@@ -15,9 +15,10 @@
 #     in the product documentation would be appreciated but is not required.
 #
 #     2. Altered source versions must be plainly marked as such, and must not be misrepresented
-#     as being the original software.
+#     as being the original software. This is altered by wx.
 #
 #     3. This notice may not be removed or altered from any source distribution.
+#
 #
 #**************************************************************************************************
 
@@ -319,6 +320,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),OSX)
         # Libraries for OSX 10.9 desktop compiling
         # NOTE: Required packages: libopenal-dev libegl1-mesa-dev
+        # had to add additional framework for mac - wx
         LDLIBS = -lraylib -framework OpenGL -framework OpenAL -framework Cocoa -framework IOKit
     endif
     ifeq ($(PLATFORM_OS),BSD)

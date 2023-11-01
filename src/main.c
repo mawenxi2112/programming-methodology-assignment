@@ -27,10 +27,10 @@ typedef struct Cell {
     Tile value;
 } Cell;
 
-#define COLUMN 10
-#define ROW 10
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 800
+#define COLUMN 3
+#define ROW 3
+#define SCREEN_WIDTH 1200
+#define SCREEN_HEIGHT 1200
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
@@ -55,7 +55,7 @@ Gamemode Current_Gamemode;
 
 Texture2D texture;
 
-// current grid design
+// current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
 // 1,0 | 1,1 | 1,2
 // 2,0 | 2,1 | 2,2
