@@ -27,8 +27,8 @@ typedef struct Cell {
     Tile value;
 } Cell;
 
-#define COLUMN 10
-#define ROW 10
+#define COLUMN 3
+#define ROW 3
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
@@ -41,6 +41,7 @@ void RenderGrid();
 void RenderTile(int x, int y, Tile tile);
 void RenderTitle();
 
+bool gameOver=false;
 bool SetTile(int x, int y, Tile tile);
 Tile GetTile(int x, int y);
 bool IsTilePlaceable(int x, int y);
@@ -127,6 +128,8 @@ void UpdateGame()
             break;
     }
 
+    
+        
     CheckWinCondition();
 }
 
@@ -178,10 +181,18 @@ void RenderTile(int x, int y, Tile tile)
 // render function for the title text
 void RenderTitle()
 {
+     if(CheckWinCondition()!=PLAYER_NONE)
+    {
+        gameOver = true ;
+        CloseWindow();
+    }
+
     if (Current_Player == PLAYER_ONE)
         DrawText("Player 1's turn", 10, 10, 20, BLACK);
+    
     else
         DrawText("Player 2's turn", 10, 10, 20, BLACK);
+
 }
 
 // setter for tile 
@@ -221,8 +232,49 @@ void PopulateGrid(Tile tile)
 }
 
 // function to check win condition
-Player CheckWinCondition()
-{
+Player CheckWinCondition(){
+    //Checking rows and columns for a win
+    for (int i = 0; i < 3; i++) {
+        if (Grid[i][0] == Grid[i][1] && Grid[i][1] == Grid[i][2] && Grid[i][0] != EMPTY) {
+            
+            if (Grid[i][0]==CROSS)
+                return PLAYER_ONE;
+            else
+                return PLAYER_TWO;
+            
+        }
+        // current grid design
+        // 0,0 | 0,1 | 0,2
+        // 1,0 | 1,1 | 1,2
+        // 2,0 | 2,1 | 2,2
+        // index of each grid
+
+        if (Grid[0][i] == Grid[1][i] && Grid[1][i] == Grid[2][i] && Grid[0][i] != EMPTY) {
+            if (Grid[0][i]==CROSS)
+                return PLAYER_ONE;
+            else
+                return PLAYER_TWO;
+        }
+    }
+
+    // Checking diagonals for a win
+    if (Grid[0][0] == Grid[1][1] && Grid[1][1] == Grid[2][2] && Grid[0][0] != EMPTY) {
+        if (Grid[0][0]==CROSS) 
+                return PLAYER_ONE;
+            else
+                return PLAYER_TWO;
+    }
+
+    if (Grid[0][2] == Grid[1][1] && Grid[1][1] == Grid[2][0] && Grid[0][2] != EMPTY) {
+        if (Grid[0][2]==CROSS)
+                return PLAYER_ONE;
+            else
+                return PLAYER_TWO;
+    }
+
+    return PLAYER_NONE;
+
+    
     // todo !
     return PLAYER_NONE;
 }
