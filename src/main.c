@@ -56,7 +56,7 @@ Gamemode Current_Gamemode;
 
 Texture2D texture;
 
-// current grid design
+// current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
 // 1,0 | 1,1 | 1,2
 // 2,0 | 2,1 | 2,2
