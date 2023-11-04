@@ -8,6 +8,7 @@
 typedef enum State{
     MENU,
     GAME,
+    SETTING,
     GAMEOVER,
     PAUSE
 } State;
@@ -49,6 +50,7 @@ void Init();
 void StartGame();
 void UpdateGameRender();
 void UpdateMenu();
+void UpdateSetting();
 void UpdateGame();
 void UpdatePause();
 void RenderGrid();
@@ -87,18 +89,18 @@ int main(void) {
         switch (Current_State)
         {
             case MENU:
-                printf("MENU\n");
                 UpdateMenu();
                 break;
             case GAME:
-                printf("GAME\n");
                 UpdateGame();
                 UpdateGameRender();
+                break;
+            case SETTING:
+                UpdateSetting();
                 break;
             case GAMEOVER:
                 break;
             case PAUSE:
-                printf("PAUSE\n");
                 UpdatePause();
                 break;
         }
@@ -118,6 +120,7 @@ void Init()
     Current_Player = &Player_One;
 
     Current_Gamemode = LOCAL;
+    Current_State = MENU;
 
     cross_circle_texture  = LoadTexture("assets/tictactoe.png");
 
@@ -198,9 +201,36 @@ void UpdateMenu()
         Current_State = GAME;
         StartGame();
     }
-    GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings");
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
+    {
+        Current_State = SETTING;
+    }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
         CloseWindow();
+    EndDrawing();
+}
+
+// setting update loop
+void UpdateSetting()
+{
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    if (IsKeyReleased(KEY_ESCAPE))
+    {
+        Current_State = MENU;
+        return;
+    }
+
+    const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
+    const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
+
+    const char* TITLE = "Setting";
+
+    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+
+    GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int*)&Current_Gamemode);
+    printf("%d\n", Current_Gamemode);
     EndDrawing();
 }
 
