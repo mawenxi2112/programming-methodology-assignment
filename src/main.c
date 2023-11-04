@@ -2,18 +2,27 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#define RAYGUI_IMPLEMENTATION
+#include "lib/raygui.h"
+
+typedef enum State{
+    MENU,
+    GAME,
+    GAMEOVER,
+    PAUSE
+} State;
+
 typedef enum Gamemode {
     LOCAL,
     AI_MINIMAX,
     AI_ML
 } Gamemode;
 
-typedef enum Player {
-    PLAYER_ONE,
-    PLAYER_TWO,
+typedef enum Player_Type {
+    PLAYER_HUMAN,
     PLAYER_AI,
     PLAYER_NONE
-} Player;
+} Player_Type;
 
 typedef enum Tile {
     EMPTY,
@@ -21,40 +30,48 @@ typedef enum Tile {
     CIRCLE
 } Tile;
 
-typedef struct Cell {
-    int x;
-    int y;
-    Tile value;
-} Cell;
+typedef struct Player{
+    Player_Type type;
+    Tile tile;
+} Player;
 
-#define COLUMN 3
-#define ROW 3
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
+#define BUTTON_WIDTH 300
+#define BUTTON_HEIGHT 100
+const int TILE_SIZE = 3;
+const int COLUMN = TILE_SIZE;
+const int ROW = TILE_SIZE;
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
 void Init();
-void UpdateRender();
+void StartGame();
+void UpdateGameRender();
+void UpdateMenu();
 void UpdateGame();
+void UpdatePause();
 void RenderGrid();
 void RenderTile(int x, int y, Tile tile);
-void RenderTitle();
+void RenderTextUI();
 
 bool gameOver=false;
 bool SetTile(int x, int y, Tile tile);
-Tile GetTile(int x, int y);
 bool IsTilePlaceable(int x, int y);
 void PopulateGrid(Tile tile);
-Player CheckWinCondition();
+void CheckWinCondition();
+void ChangePlayerTurn();
 
 // global variables
 // try not to access grid directly
 Tile Grid[COLUMN][ROW];
-Player Current_Player;
+Player Player_One, Player_Two;
+Player* Current_Player;
+Player* Winner;
 Gamemode Current_Gamemode;
+State Current_State;
 
-Texture2D texture;
+Texture2D cross_circle_texture;
 
 // current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
@@ -67,8 +84,24 @@ int main(void) {
 
     // main game loop
     while (!WindowShouldClose()) {
-        UpdateGame();
-        UpdateRender();
+        switch (Current_State)
+        {
+            case MENU:
+                printf("MENU\n");
+                UpdateMenu();
+                break;
+            case GAME:
+                printf("GAME\n");
+                UpdateGame();
+                UpdateGameRender();
+                break;
+            case GAMEOVER:
+                break;
+            case PAUSE:
+                printf("PAUSE\n");
+                UpdatePause();
+                break;
+        }
     }
     
     CloseWindow();
@@ -78,28 +111,52 @@ int main(void) {
 void Init()
 {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
-    PopulateGrid(EMPTY);
-    Current_Player = PLAYER_ONE;
+
+    Player_One = (Player){PLAYER_HUMAN, CROSS};
+    Player_Two = (Player){PLAYER_HUMAN, CIRCLE};
+
+    Current_Player = &Player_One;
+
     Current_Gamemode = LOCAL;
-    texture = LoadTexture("assets/tictactoe.png");
+
+    cross_circle_texture  = LoadTexture("assets/tictactoe.png");
+
+    SetExitKey(0); // prevent esc from closing the window
 }
 
 // render update loop
 // functions related to rendering should reside here
-void UpdateRender()
+void UpdateGameRender()
 {
     BeginDrawing();
     // clear screen and set white
     ClearBackground(RAYWHITE);
     RenderGrid();
-    RenderTitle();
+    RenderTextUI();
     EndDrawing();
+}
+
+// start a fresh game of tic tac toe function
+void StartGame()
+{
+    PopulateGrid(EMPTY);
+    Current_Player = &Player_One;
+    Winner = NULL;
 }
 
 // game logic update loop
 // functions related to rendering should reside here
 void UpdateGame()
 {
+    if (IsKeyReleased(KEY_ESCAPE))
+    {
+        Current_State = PAUSE;
+        return;
+    }
+
+    if (Winner != NULL)
+        return;
+
     switch(Current_Gamemode)
     {
         case LOCAL:
@@ -110,16 +167,9 @@ void UpdateGame()
                 int tile_x = mouse_position.x / CELL_WIDTH;
                 int tile_y = mouse_position.y / CELL_HEIGHT;
 
-                if (Current_Player == PLAYER_ONE)
-                {
-                    if (SetTile(tile_x, tile_y, CIRCLE))
-                        Current_Player = PLAYER_TWO;
-                }
-                else if (Current_Player == PLAYER_TWO)
-                {
-                    if (SetTile(tile_x, tile_y, CROSS))
-                        Current_Player = PLAYER_ONE;
-                }
+                // if we manage to place a tile down, then change player turn
+                if (SetTile(tile_x, tile_y, Current_Player->tile))
+                    ChangePlayerTurn();
             }
             break;
         case AI_MINIMAX:
@@ -127,10 +177,56 @@ void UpdateGame()
         case AI_ML:
             break;
     }
-
     
-        
     CheckWinCondition();
+}
+
+// menu update loop
+void UpdateMenu()
+{
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
+    const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
+
+    const char* MENU_TITLE = "Tic Tac Toe";
+
+    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
+    {
+        Current_State = GAME;
+        StartGame();
+    }
+    GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings");
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
+        CloseWindow();
+    EndDrawing();
+}
+
+// pause update loop
+void UpdatePause()
+{
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
+    const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
+
+    const char* TITLE = "Paused";
+
+    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Resume"))
+        Current_State = GAME;
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
+    {
+        Current_State = GAME;
+        StartGame();
+    }
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
+        Current_State = MENU;
+    
+    EndDrawing();
 }
 
 // main grid rendering function
@@ -139,8 +235,8 @@ void RenderGrid()
     for (int i = 0; i < ROW; i++)
         for (int j = 0; j < COLUMN; j++)
         {
-            int x_coord = i * CELL_WIDTH;
-            int y_coord = j * CELL_HEIGHT;
+            int x_coord = j * CELL_WIDTH;
+            int y_coord = i * CELL_HEIGHT;
             int CELL_HALF_WIDTH = CELL_WIDTH / 2;
 
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
@@ -154,10 +250,6 @@ void RenderGrid()
 // function to render a specific tile
 void RenderTile(int x, int y, Tile tile)
 {
-    int x_coord = x * CELL_WIDTH;
-    int y_coord = y * CELL_HEIGHT;
-    int CELL_HALF_WIDTH = CELL_WIDTH / 2;
-
     Rectangle destination = {x * CELL_WIDTH, y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT};
     Rectangle source;
 
@@ -165,13 +257,11 @@ void RenderTile(int x, int y, Tile tile)
     {
                 case CROSS:
                     source = (Rectangle){0, 0, 100, 100};
-                    DrawTexturePro(texture, source, destination, (Vector2){0, 0}, 0, GRAY);
-                    //DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, GRAY);
+                    DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
                     break;
                 case CIRCLE:
                     source = (Rectangle){100, 0, 100, 100};
-                    DrawTexturePro(texture, source, destination, (Vector2){0, 0}, 0, GRAY);
-                    //DrawCircle(x_coord + CELL_HALF_WIDTH, y_coord + CELL_HALF_WIDTH, CELL_HALF_WIDTH / 2, RED);
+                    DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
                     break;
                 case EMPTY:
                     break;
@@ -179,20 +269,22 @@ void RenderTile(int x, int y, Tile tile)
 }
 
 // render function for the title text
-void RenderTitle()
+void RenderTextUI()
 {
-     if(CheckWinCondition()!=PLAYER_NONE)
+    if (Winner != NULL)
     {
-        gameOver = true ;
-        CloseWindow();
+        if (Winner == &Player_One)
+            DrawText("Player 1 wins!", 10, 10, 20, BLACK);
+        else if (Winner == &Player_Two)
+            DrawText("Player 2 wins!", 10, 10, 20, BLACK);
     }
-
-    if (Current_Player == PLAYER_ONE)
-        DrawText("Player 1's turn", 10, 10, 20, BLACK);
-    
     else
-        DrawText("Player 2's turn", 10, 10, 20, BLACK);
-
+    {
+        if (Current_Player == &Player_One)
+            DrawText("Player 1's turn", 10, 10, 20, BLACK);
+        else if (Current_Player)
+            DrawText("Player 2's turn", 10, 10, 20, BLACK);
+    }
 }
 
 // setter for tile 
@@ -206,12 +298,6 @@ bool SetTile(int x, int y, Tile tile)
     }
     else
         return false;
-}
-
-// getter for tile
-Tile GetTile(int x, int y)
-{
-    return Grid[x][y];
 }
 
 // check if tile is empty and able to place
@@ -232,49 +318,131 @@ void PopulateGrid(Tile tile)
 }
 
 // function to check win condition
-Player CheckWinCondition(){
-    //Checking rows and columns for a win
-    for (int i = 0; i < 3; i++) {
-        if (Grid[i][0] == Grid[i][1] && Grid[i][1] == Grid[i][2] && Grid[i][0] != EMPTY) {
-            
-            if (Grid[i][0]==CROSS)
-                return PLAYER_ONE;
-            else
-                return PLAYER_TWO;
-            
+void CheckWinCondition()
+{   
+    Tile temp;
+
+    // loop through each row, and compare columns
+    // algo to check each row
+    for (int i = 0; i < ROW; i++)
+        for (int j = 0; j < COLUMN; j++)
+        {
+            if (j == 0)
+            {
+                temp = Grid[i][j];
+                continue;
+            }
+            else if (temp != Grid[i][j])
+            {
+                temp = EMPTY;
+                break;
+            }
+            else if (j == COLUMN - 1)
+            {
+                if (Player_One.tile == temp)
+                {
+                    Winner = &Player_One;
+                    return;
+                }
+                else if (Player_Two.tile == temp)
+                {
+                    Winner = &Player_Two;
+                    return;
+                }
+            }
         }
-        // current grid design
-        // 0,0 | 0,1 | 0,2
-        // 1,0 | 1,1 | 1,2
-        // 2,0 | 2,1 | 2,2
-        // index of each grid
 
-        if (Grid[0][i] == Grid[1][i] && Grid[1][i] == Grid[2][i] && Grid[0][i] != EMPTY) {
-            if (Grid[0][i]==CROSS)
-                return PLAYER_ONE;
-            else
-                return PLAYER_TWO;
+    // loop through each column, and compare rows
+    // algo to check each column
+    for (int i = 0; i < COLUMN; i++)
+        for (int j = 0; j < ROW; j++)
+        {
+            if (j == 0)
+            {
+                temp = Grid[j][i];
+                continue;
+            }
+            else if (temp != Grid[j][i])
+            {
+                temp = EMPTY;
+                break;
+            }
+            else if (j == ROW - 1)
+            {
+                if (Player_One.tile == temp)
+                {
+                    Winner = &Player_One;
+                    return;
+                }
+                else if (Player_Two.tile == temp)
+                {
+                    Winner = &Player_Two;
+                    return;
+                }
+            }
+        }
+
+    // algo to check top left to bottom right diagonal
+    for (int i = 0; i < ROW; i++)
+    {
+        if (i == 0)
+        {
+            temp = Grid[i][i];
+            continue;
+        }
+        else if (temp != Grid[i][i])
+        {
+            temp = EMPTY;
+            break;
+        }
+        else if (i == ROW - 1)
+        {
+            if (Player_One.tile == temp)
+            {
+                Winner = &Player_One;
+                return;
+            }
+            else if (Player_Two.tile == temp)
+            {
+                Winner = &Player_Two;
+                return;
+            }
         }
     }
 
-    // Checking diagonals for a win
-    if (Grid[0][0] == Grid[1][1] && Grid[1][1] == Grid[2][2] && Grid[0][0] != EMPTY) {
-        if (Grid[0][0]==CROSS) 
-                return PLAYER_ONE;
-            else
-                return PLAYER_TWO;
+    // algo to check bottom left to top right diagonal
+    for (int i = 0; i < ROW; i++)
+    {
+        if (i == 0)
+        {
+            temp = Grid[ROW - 1 - i][i];
+            continue;
+        }
+        else if (temp != Grid[ROW - 1 - i][i])
+        {
+            temp = EMPTY;
+            break;
+        }
+        else if (i == ROW - 1)
+        {
+            if (Player_One.tile == temp)
+            {
+                Winner = &Player_One;
+                return;
+            }
+            else if (Player_Two.tile == temp)
+            {
+                Winner = &Player_Two;
+                return;
+            }
+        }
     }
+}
 
-    if (Grid[0][2] == Grid[1][1] && Grid[1][1] == Grid[2][0] && Grid[0][2] != EMPTY) {
-        if (Grid[0][2]==CROSS)
-                return PLAYER_ONE;
-            else
-                return PLAYER_TWO;
-    }
-
-    return PLAYER_NONE;
-
-    
-    // todo !
-    return PLAYER_NONE;
+void ChangePlayerTurn()
+{
+    if (Current_Player == &Player_One)
+        Current_Player = &Player_Two;
+    else if (Current_Player == &Player_Two)
+        Current_Player = &Player_One;
 }
