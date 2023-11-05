@@ -5,7 +5,8 @@
 #define RAYGUI_IMPLEMENTATION
 #include "lib\raygui.h"
 
-typedef enum State{
+typedef enum State
+{
     MENU,
     GAME,
     SETTING,
@@ -13,31 +14,36 @@ typedef enum State{
     PAUSE
 } State;
 
-typedef enum Gamemode {
+typedef enum Gamemode
+{
     LOCAL,
     AI_MINIMAX,
     AI_ML
 } Gamemode;
 
-typedef enum DifficultyMode {
+typedef enum DifficultyMode
+{
     EASY,
     MEDIUM,
     HARD
 } DifficultyMode;
 
-typedef enum Player_Type {
+typedef enum Player_Type
+{
     PLAYER_HUMAN,
     PLAYER_AI,
     PLAYER_NONE
 } Player_Type;
 
-typedef enum Tile {
+typedef enum Tile
+{
     EMPTY,
     CROSS,
     CIRCLE
 } Tile;
 
-typedef struct Player{
+typedef struct Player
+{
     Player_Type type;
     Tile tile;
 } Player;
@@ -62,7 +68,7 @@ void RenderGrid();
 void RenderTile(int x, int y, Tile tile);
 void RenderTextUI();
 
-bool gameOver=false;
+bool gameOver = false;
 bool SetTile(int x, int y, Tile tile);
 bool IsTilePlaceable(int x, int y);
 void PopulateGrid(Tile tile);
@@ -73,8 +79,8 @@ void ChangePlayerTurn();
 // try not to access grid directly
 Tile Grid[COLUMN][ROW];
 Player Player_One, Player_Two;
-Player* Current_Player;
-Player* Winner;
+Player *Current_Player;
+Player *Winner;
 Gamemode Current_Gamemode;
 DifficultyMode gameDifficultyMode;
 State Current_State;
@@ -86,38 +92,40 @@ Texture2D cross_circle_texture;
 // 2,0 | 2,1 | 2,2
 // index of each grid
 
-
 // zihao testing
+void HandleTilePlacement();
 void showWinMenu();
 int isBoardFull();
 int miniMax(int depth, int max_depth, int is_max);
-void makeBestMove(int difficulty);
+void miniMaxMakeBestMove();
 
-int main(void) {
+int main(void)
+{
     Init();
 
     // main game loop
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose())
+    {
         switch (Current_State)
         {
-            case MENU:
-                UpdateMenu();
-                break;
-            case GAME:
-                UpdateGame();
-                UpdateGameRender();
-                break;
-            case SETTING:
-                UpdateSetting();
-                break;
-            case GAMEOVER:
-                break;
-            case PAUSE:
-                UpdatePause();
-                break;
+        case MENU:
+            UpdateMenu();
+            break;
+        case GAME:
+            UpdateGame();
+            UpdateGameRender();
+            break;
+        case SETTING:
+            UpdateSetting();
+            break;
+        case GAMEOVER:
+            break;
+        case PAUSE:
+            UpdatePause();
+            break;
         }
     }
-    
+
     CloseWindow();
     return 0;
 }
@@ -125,26 +133,7 @@ int main(void) {
 void Init()
 {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
-
-    // LOCAL GAME MODE TEST
-    // Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-    // Player_Two = (Player){PLAYER_HUMAN, CROSS};
-
-    // Current_Player = &Player_One;
-    // Current_Gamemode = LOCAL;
-    // Current_State = MENU;
-
-    // AI MINIMAX GAME MODE TEST
-    Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-    Player_Two = (Player){PLAYER_AI, CROSS};
-
-    Current_Player = &Player_One;
-    Current_Gamemode = AI_MINIMAX;
-    Current_State = MENU;
-
-
-    cross_circle_texture  = LoadTexture("assets/tictactoe.png");
-
+    cross_circle_texture = LoadTexture("assets/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
 }
 
@@ -169,6 +158,16 @@ void UpdateGameRender()
 void StartGame()
 {
     PopulateGrid(EMPTY);
+    if (Current_Gamemode == LOCAL)
+    {
+        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
+        Player_Two = (Player){PLAYER_HUMAN, CROSS};
+    }
+    else
+    {
+        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
+        Player_Two = (Player){PLAYER_AI, CROSS};
+    }
     Current_Player = &Player_One;
     Winner = NULL;
 }
@@ -183,52 +182,45 @@ void UpdateGame()
         return;
     }
 
-
-    switch(Current_Gamemode)
+    switch (Current_Gamemode)
     {
         case LOCAL:
             // receive user input and place tile
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            {
-                Vector2 mouse_position = GetMousePosition();
-                int tile_x = mouse_position.x / CELL_WIDTH;
-                int tile_y = mouse_position.y / CELL_HEIGHT;
-
-                // if we manage to place a tile down, then change player turn
-                if (SetTile(tile_x, tile_y, Current_Player->tile))
-                    ChangePlayerTurn();
-            }
+            HandleTilePlacement();
             break;
         case AI_MINIMAX:
             // receive user input and place tile
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && Current_Player == &Player_One)
+            if (Current_Player == &Player_One)
             {
-                Vector2 mouse_position = GetMousePosition();
-                int tile_x = mouse_position.x / CELL_WIDTH;
-                int tile_y = mouse_position.y / CELL_HEIGHT;
-
-                if (SetTile(tile_x, tile_y, Current_Player->tile))
-                    ChangePlayerTurn();
-            }else if (Current_Player == &Player_Two) {
-                switch (gameDifficultyMode) {
-                    case EASY:
-                        makeBestMove(1);
-                        break;
-                    case MEDIUM:
-                        makeBestMove(3);
-                        break;
-                    case HARD:
-                        makeBestMove(8);
-                        break;
-                }
+            HandleTilePlacement();
+            }
+            else if (Current_Player == &Player_Two)
+            {
+                miniMaxMakeBestMove();
                 ChangePlayerTurn();
             }
             break;
         case AI_ML:
             break;
     }
-    
+
     CheckWinCondition();
+}
+
+// Function to handle tile placement logic
+void HandleTilePlacement()
+{
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+    {
+        Vector2 mouse_position = GetMousePosition();
+        int tile_x = mouse_position.x / CELL_WIDTH;
+        int tile_y = mouse_position.y / CELL_HEIGHT;
+
+        if (SetTile(tile_x, tile_y, Current_Player->tile))
+        {
+            ChangePlayerTurn();
+        }
+    }
 }
 
 // menu update loop
@@ -240,7 +232,7 @@ void UpdateMenu()
     const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
     const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
-    const char* MENU_TITLE = "Tic Tac Toe";
+    const char *MENU_TITLE = "Tic Tac Toe";
 
     DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
@@ -254,6 +246,7 @@ void UpdateMenu()
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
         CloseWindow();
+
     EndDrawing();
 }
 
@@ -272,13 +265,14 @@ void UpdateSetting()
     const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
     const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
-    const char* TITLE = "Setting";
+    const char *TITLE = "Setting";
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
 
-    GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int*)&Current_Gamemode);
-    if (Current_Gamemode == AI_MINIMAX){
-        GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int*)&gameDifficultyMode);
+    GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int *)&Current_Gamemode);
+    if (Current_Gamemode == AI_MINIMAX)
+    {
+        GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&gameDifficultyMode);
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         Current_State = MENU;
@@ -294,7 +288,7 @@ void UpdatePause()
     const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
     const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
 
-    const char* TITLE = "Paused";
+    const char *TITLE = "Paused";
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Resume"))
@@ -306,7 +300,7 @@ void UpdatePause()
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         Current_State = MENU;
-    
+
     EndDrawing();
 }
 
@@ -316,12 +310,23 @@ void showWinMenu()
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-    char* TITLE = Winner == &Player_One ? "Player 1 Win!" : "Player 2 Win!";
-    if (isBoardFull() && Winner == NULL) TITLE = "Draw!";
+    char *TITLE = "Player 1 Wins!";
+
+    if (Winner == &Player_Two && Player_Two.type == PLAYER_AI)
+    {
+        TITLE = "AI wins!";
+    }
+    else if (Winner == &Player_Two)
+    {
+        TITLE = "Player 2 Wins";
+    }
+    else if (isBoardFull() && Winner == NULL)
+    {
+        TITLE = "Draw!";
+    }
 
     const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;
     const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2;
-
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
 
@@ -332,7 +337,7 @@ void showWinMenu()
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         Current_State = MENU;
-    
+
     EndDrawing();
 }
 
@@ -349,7 +354,7 @@ void RenderGrid()
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
 
             RenderTile(i, j, Grid[i][j]);
-            const char* tile_index = TextFormat("[%d, %d]", i, j);
+            const char *tile_index = TextFormat("[%d, %d]", i, j);
             DrawText(tile_index, x_coord + CELL_HALF_WIDTH - MeasureText(tile_index, 20) / 2, y_coord + CELL_HALF_WIDTH - 10, 20, BLACK);
         }
 }
@@ -362,16 +367,16 @@ void RenderTile(int x, int y, Tile tile)
 
     switch (Grid[x][y])
     {
-        case CROSS:
-            source = (Rectangle){0, 0, 100, 100};
-            DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
-            break;
-        case CIRCLE:
-            source = (Rectangle){100, 0, 100, 100};
-            DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
-            break;
-        case EMPTY:
-            break;
+    case CROSS:
+        source = (Rectangle){0, 0, 100, 100};
+        DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        break;
+    case CIRCLE:
+        source = (Rectangle){100, 0, 100, 100};
+        DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        break;
+    case EMPTY:
+        break;
     }
 }
 
@@ -394,10 +399,10 @@ void RenderTextUI()
     }
 }
 
-// setter for tile 
+// setter for tile
 // use this instead of accessing array directly
 bool SetTile(int x, int y, Tile tile)
-{   
+{
     if (IsTilePlaceable(x, y))
     {
         Grid[x][y] = tile;
@@ -426,7 +431,7 @@ void PopulateGrid(Tile tile)
 
 // function to check win condition
 void CheckWinCondition()
-{   
+{
     Tile temp;
 
     // loop through each row, and compare columns
@@ -554,10 +559,15 @@ void ChangePlayerTurn()
         Current_Player = &Player_One;
 }
 
-int isBoardFull() {
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (Grid[i][j] == EMPTY) {
+// Functions check if board is full return 1 if full else 0
+int isBoardFull()
+{
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (Grid[i][j] == EMPTY)
+            {
                 return 0;
             }
         }
@@ -565,65 +575,94 @@ int isBoardFull() {
     return 1;
 }
 
-int miniMax(int depth, int is_max, int max_depth) {
+// Minimax algorithm with alpha-beta pruning
+int miniMax(int depth, int is_max, int max_depth)
+{
     CheckWinCondition();
 
-    if (Winner == &Player_Two) {
+    if (Winner == &Player_Two) // Check if Player_Two has won, return 1
+    {
         Winner = NULL;
         return 1;
     }
-    if (Winner == &Player_One){
+    else if(Winner == &Player_One) // Check if Player_One has won, return -1
+    {
         Winner = NULL;
         return -1;
     }
-    if (isBoardFull() || depth == max_depth) return 0;
-
-    if (is_max) {
-        int best = -1000;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (Grid[i][j] == EMPTY) {
-                    Grid[i][j] = CROSS;
-                    best = fmax(best, miniMax(depth + 1, !is_max, max_depth));
-                    Grid[i][j] = EMPTY;
-                }
-            }
-        }
-        return best;
-    } else {
-        int best = 1000;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (Grid[i][j] == EMPTY) {
-                    Grid[i][j] = CIRCLE;
-                    best = fmin(best, miniMax(depth + 1, !is_max, max_depth));
-                    Grid[i][j] = EMPTY;
-                }
-            }
-        }
-        return best;
+    else if(isBoardFull() || depth == max_depth) // Check if board is full or depth is max, return 0
+    {
+        return 0;
     }
+
+    // initalize a best value base on the current player (max or min)
+    int best = is_max ? -1000 : 1000;
+
+    // Loop through the board cells
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (Grid[i][j] == EMPTY)
+            {
+                // Temporarily set the cell with the current player's tile
+                Grid[i][j] = is_max ? CROSS : CIRCLE;
+
+                // Recursively calculate the minimax value
+                int move_val = miniMax(depth + 1, !is_max, max_depth);
+
+                // Update the best value based on the current player (max or min)
+                best = is_max ? fmax(best, move_val) : fmin(best, move_val);
+
+                // Undo the move (backtrack)
+                Grid[i][j] = EMPTY;
+            }
+        }
+    }
+
+    return best;
 }
 
-void makeBestMove(int difficulty) {
-    int best_val = -1000;
-    int best_move_i = -1;
-    int best_move_j = -1;
+void miniMaxMakeBestMove()
+{   
+    // Set initial difficult of miniMax mod to easy to look only 1 move ahead
+    int difficulty = 1;
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (Grid[i][j] == EMPTY) {
+    // if difficulty is medium or hard update difficulty
+    if(gameDifficultyMode == MEDIUM)
+        difficulty = 3; // look 3 moves ahead
+    else if(gameDifficultyMode == HARD)
+        difficulty = 8; // look all moves ahead
+
+    // initial best value to a very low value
+    int best_val = -1000;
+
+    // initialize 2d array row and column value
+    int best_move_row = -1;
+    int best_move_column = -1;
+
+    // Loop through the board cells
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            // if cell is empty, attempt move and see if it is the best move
+            if (Grid[i][j] == EMPTY)
+            {
                 Grid[i][j] = CROSS;
                 int move_val = miniMax(0, 0, difficulty);
                 Grid[i][j] = EMPTY;
-                if (move_val > best_val) {
-                    best_move_i = i;
-                    best_move_j = j;
+                // if move_val is better than best_val, update best_val and best_move_row and best_move_column
+                if (move_val > best_val)
+                {
+                    best_move_row = i;
+                    best_move_column = j;
                     best_val = move_val;
                 }
             }
         }
     }
 
-    Grid[best_move_i][best_move_j] = CROSS;
+    // make the best move
+    Grid[best_move_row][best_move_column] = CROSS;
 }
