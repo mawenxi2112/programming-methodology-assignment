@@ -40,9 +40,8 @@ typedef struct Player{
 #define SCREEN_HEIGHT 800
 #define BUTTON_WIDTH 300
 #define BUTTON_HEIGHT 100
-const int TILE_SIZE = 3;
-const int COLUMN = TILE_SIZE;
-const int ROW = TILE_SIZE;
+#define COLUMN 3
+#define ROW 3
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
