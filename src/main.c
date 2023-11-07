@@ -96,7 +96,7 @@ Texture2D cross_circle_texture;
 void HandleTilePlacement();
 void showWinMenu();
 int isBoardFull();
-int miniMax(int depth, int max_depth, int is_max);
+int miniMax(int depth, int max_depth, int is_max, int alpha, int beta);
 void miniMaxMakeBestMove();
 
 int main(void)
@@ -560,9 +560,9 @@ void ChangePlayerTurn()
 // Functions check if board is full return 1 if full else 0
 int isBoardFull()
 {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < ROW; i++)
     {
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < COLUMN; j++)
         {
             if (Grid[i][j] == EMPTY)
             {
@@ -573,9 +573,7 @@ int isBoardFull()
     return 1;
 }
 
-// Minimax algorithm with alpha-beta pruning
-int miniMax(int depth, int is_max, int max_depth)
-{
+int evaluate(){
     CheckWinCondition();
 
     if (Winner == &Player_Two) // Check if Player_Two has won, return 1
@@ -588,18 +586,25 @@ int miniMax(int depth, int is_max, int max_depth)
         Winner = NULL;
         return -1;
     }
-    else if(isBoardFull() || depth == max_depth) // Check if board is full or depth is max, return 0
-    {
-        return 0;
-    }
+    
+    return 0;
+}
+
+// Minimax algorithm with alpha-beta pruning
+int miniMax(int depth, int is_max, int max_depth, int alpha, int beta)
+{
+    int score = evaluate();
+
+    if (score != 0) return score;
+    if (isBoardFull() || depth == max_depth) return 0;
 
     // initalize a best value base on the current player (max or min)
     int best = is_max ? -1000 : 1000;
 
     // Loop through the board cells
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < ROW; i++)
     {
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < COLUMN; j++)
         {
             if (Grid[i][j] == EMPTY)
             {
@@ -607,13 +612,30 @@ int miniMax(int depth, int is_max, int max_depth)
                 Grid[i][j] = is_max ? CROSS : CIRCLE;
 
                 // Recursively calculate the minimax value
-                int move_val = miniMax(depth + 1, !is_max, max_depth);
+                int move_val = miniMax(depth + 1, !is_max, max_depth, alpha, beta);
 
                 // Update the best value based on the current player (max or min)
                 best = is_max ? fmax(best, move_val) : fmin(best, move_val);
 
                 // Undo the move (backtrack)
                 Grid[i][j] = EMPTY;
+
+                if (is_max)
+                {
+                    best = fmax(best, move_val);
+                    alpha = fmax(alpha, move_val);
+                }
+                else
+                {
+                    best = fmin(best, move_val);
+                    beta = fmin(beta, move_val);
+                }
+
+                // Alpha-beta pruning
+                if (beta <= alpha)
+                {
+                    break;  // Prune the branch
+                }
             }
         }
     }
@@ -624,13 +646,13 @@ int miniMax(int depth, int is_max, int max_depth)
 void miniMaxMakeBestMove()
 {   
     // Set initial difficult of miniMax mod to easy to look only 1 move ahead
-    int difficulty = 1;
+    int difficulty = 0;
 
     // if difficulty is medium or hard update difficulty
     if(gameDifficultyMode == MEDIUM)
-        difficulty = 3; // look 3 moves ahead
+        difficulty = 1; 
     else if(gameDifficultyMode == HARD)
-        difficulty = 8; // look all moves ahead
+        difficulty = ROW * COLUMN;
 
     // initial best value to a very low value
     int best_val = -1000;
@@ -640,15 +662,15 @@ void miniMaxMakeBestMove()
     int best_move_column = -1;
 
     // Loop through the board cells
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < ROW; i++)
     {
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < COLUMN; j++)
         {
             // if cell is empty, attempt move and see if it is the best move
             if (Grid[i][j] == EMPTY)
             {
                 Grid[i][j] = CROSS;
-                int move_val = miniMax(0, 0, difficulty);
+                int move_val = miniMax(0, 0, difficulty, -1000, 1000);
                 Grid[i][j] = EMPTY;
                 // if move_val is better than best_val, update best_val and best_move_row and best_move_column
                 if (move_val > best_val)
