@@ -165,6 +165,9 @@ void StartGame()
     }
     else
     {
+        // Testing AI cross/circle can delete
+        // Player_One = (Player){PLAYER_HUMAN, CIRCLE};
+        // Player_Two = (Player){PLAYER_AI, CROSS};
         Player_One = (Player){PLAYER_HUMAN, CIRCLE};
         Player_Two = (Player){PLAYER_AI, CROSS};
     }
@@ -609,7 +612,7 @@ int miniMax(int depth, int is_max, int max_depth, int alpha, int beta)
             if (Grid[i][j] == EMPTY)
             {
                 // Temporarily set the cell with the current player's tile
-                Grid[i][j] = is_max ? CROSS : CIRCLE;
+                Grid[i][j] = is_max ? Player_Two.tile : Player_One.tile;
 
                 // Recursively calculate the minimax value
                 int move_val = miniMax(depth + 1, !is_max, max_depth, alpha, beta);
@@ -619,15 +622,14 @@ int miniMax(int depth, int is_max, int max_depth, int alpha, int beta)
 
                 // Undo the move (backtrack)
                 Grid[i][j] = EMPTY;
-
+                
+                // alpha-beta pruning codes!!!
                 if (is_max)
                 {
-                    best = fmax(best, move_val);
                     alpha = fmax(alpha, move_val);
                 }
                 else
                 {
-                    best = fmin(best, move_val);
                     beta = fmin(beta, move_val);
                 }
 
@@ -669,7 +671,7 @@ void miniMaxMakeBestMove()
             // if cell is empty, attempt move and see if it is the best move
             if (Grid[i][j] == EMPTY)
             {
-                Grid[i][j] = CROSS;
+                Grid[i][j] = Player_Two.tile;
                 int move_val = miniMax(0, 0, difficulty, -1000, 1000);
                 Grid[i][j] = EMPTY;
                 // if move_val is better than best_val, update best_val and best_move_row and best_move_column
@@ -684,5 +686,5 @@ void miniMaxMakeBestMove()
     }
 
     // make the best move
-    Grid[best_move_row][best_move_column] = CROSS;
+    Grid[best_move_row][best_move_column] = Player_Two.tile;
 }
