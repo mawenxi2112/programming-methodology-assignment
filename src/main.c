@@ -3,7 +3,7 @@
 #include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include "lib\raygui.h"
+#include <lib/raygui.h>
 
 typedef enum State
 {
