@@ -11,7 +11,7 @@
                 "OBJS=${fileBasenameNoExtension}.c"
             ],
             "windows": {
-                "command": "lib/mingw32-make.exe",
+                "command": "C:/msys64/mingw64/bin/mingw32-make.exe",
                 "args": [
                     "RAYLIB_PATH=C:/raylib/raylib",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_win.exe",
