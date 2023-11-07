@@ -21,8 +21,8 @@
         {
             "name": "Mac",
             "includePath": [
-                "/Users/wnxi/repos/raylib/src/**",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/lib/raylib/src/**"
             ],
             "defines": [
                 "_DEBUG",
