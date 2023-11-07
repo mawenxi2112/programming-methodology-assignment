@@ -77,7 +77,7 @@ void ChangePlayerTurn();
 
 // global variables
 // try not to access grid directly
-Tile Grid[COLUMN][ROW];
+Tile Grid[ROW][COLUMN];
 Player Player_One, Player_Two;
 Player *Current_Player;
 Player *Winner;
@@ -213,10 +213,9 @@ void HandleTilePlacement()
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
     {
         Vector2 mouse_position = GetMousePosition();
-        int tile_x = mouse_position.x / CELL_WIDTH;
-        int tile_y = mouse_position.y / CELL_HEIGHT;
-
-        if (SetTile(tile_x, tile_y, Current_Player->tile))
+        int x = mouse_position.x / CELL_WIDTH;
+        int y = mouse_position.y / CELL_HEIGHT;
+        if (SetTile(x, y, Current_Player->tile))
         {
             ChangePlayerTurn();
         }
@@ -350,7 +349,6 @@ void RenderGrid()
             int x_coord = j * CELL_WIDTH;
             int y_coord = i * CELL_HEIGHT;
             int CELL_HALF_WIDTH = CELL_WIDTH / 2;
-
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
 
             RenderTile(i, j, Grid[i][j]);
@@ -361,11 +359,11 @@ void RenderGrid()
 
 // function to render a specific tile
 void RenderTile(int x, int y, Tile tile)
-{
+{   
     Rectangle destination = {x * CELL_WIDTH, y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT};
     Rectangle source;
 
-    switch (Grid[x][y])
+    switch (Grid[y][x])
     {
     case CROSS:
         source = (Rectangle){0, 0, 100, 100};
@@ -405,7 +403,7 @@ bool SetTile(int x, int y, Tile tile)
 {
     if (IsTilePlaceable(x, y))
     {
-        Grid[x][y] = tile;
+        Grid[y][x] = tile;
         return true;
     }
     else
@@ -415,7 +413,7 @@ bool SetTile(int x, int y, Tile tile)
 // check if tile is empty and able to place
 bool IsTilePlaceable(int x, int y)
 {
-    if (Grid[x][y] == EMPTY)
+    if (Grid[y][x] == EMPTY)
         return true;
     else
         return false;
