@@ -13,15 +13,15 @@
             "windows": {
                 "command": "C:/msys64/mingw64/bin/mingw32-make.exe",
                 "args": [
-                    "RAYLIB_PATH=${workspaceFolder}/lib/raylib",
+                    "RAYLIB_PATH=C:/raylib/raylib",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_win.exe",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
                 ]
-                },
-                "osx": {
+            },
+            "osx": {
                 "args": [
-                    "RAYLIB_PATH=${workspaceFolder}/lib/raylib",
+                    "RAYLIB_PATH=/Users/$USER/repos/raylib",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_mac",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"

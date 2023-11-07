@@ -3,7 +3,7 @@
 #include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include <lib/raylib/src/raygui.h>
+#include <lib/raygui.h>
 
 typedef enum State
 {
@@ -77,7 +77,7 @@ void ChangePlayerTurn();
 
 // global variables
 // try not to access grid directly
-Tile Grid[ROW][COLUMN];
+Tile Grid[COLUMN][ROW];
 Player Player_One, Player_Two;
 Player *Current_Player;
 Player *Winner;
