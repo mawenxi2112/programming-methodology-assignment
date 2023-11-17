@@ -11,7 +11,8 @@ typedef enum State
     GAME,
     SETTING,
     GAMEOVER,
-    PAUSE
+    PAUSE,
+    NONE
 } State;
 
 typedef enum Gamemode
@@ -48,6 +49,8 @@ typedef struct Player
     Tile tile;
 } Player;
 
+// offset is for the extra screenspace at the top during game
+#define UI_OFFSET 150
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 #define BUTTON_WIDTH 300
@@ -64,11 +67,11 @@ void UpdateMenu();
 void UpdateSetting();
 void UpdateGame();
 void UpdatePause();
+void SetCurrentState(State state);
 void RenderGrid();
 void RenderTile(int x, int y, Tile tile);
 void RenderTextUI();
 
-bool gameOver = false;
 bool SetTile(int x, int y, Tile tile);
 bool IsTilePlaceable(int x, int y);
 void PopulateGrid(Tile tile);
@@ -83,7 +86,8 @@ Player *Current_Player;
 Player *Winner;
 Gamemode Current_Gamemode;
 DifficultyMode gameDifficultyMode;
-State Current_State;
+State Previous_State = NONE; 
+State Current_State = MENU;
 Texture2D cross_circle_texture;
 
 // current grid design, row = 3, column = 3
@@ -101,11 +105,20 @@ void miniMaxMakeBestMove();
 
 int main(void)
 {
-    Init();
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
+    cross_circle_texture = LoadTexture("assets/tictactoe.png");
+    SetExitKey(0); // prevent esc from closing the window
 
     // main game loop
     while (!WindowShouldClose())
     {
+        // if state changes, run the state init
+        if (Previous_State != Current_State)
+        {
+            Init();
+            Previous_State = Current_State;
+        }
+
         switch (Current_State)
         {
         case MENU:
@@ -132,9 +145,24 @@ int main(void)
 
 void Init()
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
-    cross_circle_texture = LoadTexture("assets/tictactoe.png");
-    SetExitKey(0); // prevent esc from closing the window
+    switch (Current_State)
+    {
+    case MENU:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case GAME:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT + UI_OFFSET);
+        break;
+    case SETTING:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case GAMEOVER:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case PAUSE:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    }
 }
 
 // render update loop
@@ -181,7 +209,7 @@ void UpdateGame()
 {
     if (IsKeyReleased(KEY_ESCAPE))
     {
-        Current_State = PAUSE;
+        SetCurrentState(PAUSE);
         return;
     }
 
@@ -210,14 +238,25 @@ void UpdateGame()
     CheckWinCondition();
 }
 
+void SetCurrentState(State state)
+{
+    Previous_State = Current_State;
+    Current_State = state;
+}
+
 // Function to handle tile placement logic
 void HandleTilePlacement()
 {
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
     {
         Vector2 mouse_position = GetMousePosition();
+
+        if (mouse_position.y < UI_OFFSET)
+            return;
+
         int x = mouse_position.x / CELL_WIDTH;
-        int y = mouse_position.y / CELL_HEIGHT;
+        int y = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
+        printf("x: %d, y: %d\n", x, y);
         if (SetTile(x, y, Current_Player->tile))
         {
             ChangePlayerTurn();
@@ -239,12 +278,12 @@ void UpdateMenu()
     DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
     {
-        Current_State = GAME;
+        SetCurrentState(GAME);
         StartGame();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
     {
-        Current_State = SETTING;
+        SetCurrentState(SETTING);
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
         CloseWindow();
@@ -260,7 +299,7 @@ void UpdateSetting()
 
     if (IsKeyReleased(KEY_ESCAPE))
     {
-        Current_State = MENU;
+        SetCurrentState(MENU);
         return;
     }
 
@@ -277,7 +316,7 @@ void UpdateSetting()
         GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&gameDifficultyMode);
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        Current_State = MENU;
+        SetCurrentState(MENU);
     EndDrawing();
 }
 
@@ -294,14 +333,14 @@ void UpdatePause()
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Resume"))
-        Current_State = GAME;
+        SetCurrentState(GAME);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
     {
-        Current_State = GAME;
+        SetCurrentState(GAME);
         StartGame();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        Current_State = MENU;
+        SetCurrentState(MENU);
 
     EndDrawing();
 }
@@ -334,11 +373,11 @@ void showWinMenu()
 
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
     {
-        Current_State = GAME;
+        SetCurrentState(GAME);
         StartGame();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        Current_State = MENU;
+        SetCurrentState(MENU);
 
     EndDrawing();
 }
@@ -350,23 +389,23 @@ void RenderGrid()
         for (int j = 0; j < COLUMN; j++)
         {
             int x_coord = j * CELL_WIDTH;
-            int y_coord = i * CELL_HEIGHT;
+            int y_coord = i * CELL_HEIGHT + UI_OFFSET;
             int CELL_HALF_WIDTH = CELL_WIDTH / 2;
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
 
-            RenderTile(i, j, Grid[i][j]);
+            RenderTile(x_coord, y_coord, Grid[i][j]);
             const char *tile_index = TextFormat("[%d, %d]", i, j);
             DrawText(tile_index, x_coord + CELL_HALF_WIDTH - MeasureText(tile_index, 20) / 2, y_coord + CELL_HALF_WIDTH - 10, 20, BLACK);
         }
 }
 
 // function to render a specific tile
-void RenderTile(int x, int y, Tile tile)
+void RenderTile(int x_coord, int y_coord, Tile tile)
 {   
-    Rectangle destination = {x * CELL_WIDTH, y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT};
+    Rectangle destination = {x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT};
     Rectangle source;
 
-    switch (Grid[y][x])
+    switch (tile)
     {
     case CROSS:
         source = (Rectangle){0, 0, 100, 100};
@@ -398,6 +437,10 @@ void RenderTextUI()
         else if (Current_Player)
             DrawText("Player 2's turn", 10, 10, 20, BLACK);
     }
+
+    Vector2 mouse_position = GetMousePosition();
+    char *mouse_position_text = TextFormat("Mouse Position: (%.0f, %.0f)", mouse_position.x, mouse_position.y);
+    DrawText(mouse_position_text, 10, 20, 20, BLACK);
 }
 
 // setter for tile
