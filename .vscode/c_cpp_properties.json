@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "C:/raylib/raylib/src/**",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/lib/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -21,8 +22,10 @@
         {
             "name": "Mac",
             "includePath": [
-                "/Users/wnxi/repos/raylib/src/**",
-                "${workspaceFolder}/**"
+                "/Users/wnxi/repos/raylib/**",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/lib/**"
+            
             ],
             "defines": [
                 "_DEBUG",
