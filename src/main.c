@@ -46,8 +46,8 @@ typedef enum Tile
 } Tile;
 
 typedef enum Data_Result {
-    POSITIVE,
-    NEGATIVE
+    NEGATIVE,
+    POSITIVE
 } Data_Result;
 
 typedef struct Move {
@@ -281,7 +281,7 @@ void UpdateGame()
             // receive user input and place tile
             if (Current_Player == &Player_One)
             {
-            HandleTilePlacement();
+                HandleTilePlacement();
             }
             else if (Current_Player == &Player_Two)
             {
@@ -819,7 +819,7 @@ void mini_max_make_best_move()
     Grid[best_move_row][best_move_column] = Player_Two.tile;
 }
 
-void read_ml_dataset(char file_name[50])
+void read_ml_dataset(char file_name[])
 {
     // attempt to open file for reading
     FILE *dataset_file = fopen(file_name, "r");
@@ -900,28 +900,32 @@ void naive_bayes_learn(float training_data_weight)
             g_negative_counter++;
         }
 
-        // loop through each tile
+        /*
+            increment the count of each tile in g_naive_bayes_probability, where
+            for each row, the first 3 columns are positive and last 3 columns are negative
+            row_offset will offset the array index depending whether the current result
+            is positive or negative
+        */
+        int row_offset = current_row.result == POSITIVE ? 0 : 3;
+
         for (int row = 0; row < 9; row++)
         {
-            // increment the count of each tile
-            // 2d column array stores the count of each 
-            // current_row.result * 3 will offset the array index depending whether positive = 0 or negative = 0
             switch (current_row.tile[row])
                 {
                     case CROSS:
-                        g_naive_bayes_probability[row][0 + current_row.result * 3]++;
+                        g_naive_bayes_probability[row][0 + row_offset]++;
                         break;
                     case CIRCLE:
-                        g_naive_bayes_probability[row][1 + current_row.result * 3]++;
+                        g_naive_bayes_probability[row][1 + row_offset]++;
                         break;
                     case EMPTY:
-                        g_naive_bayes_probability[row][2 + current_row.result * 3]++;
+                        g_naive_bayes_probability[row][2 + row_offset]++;
                         break;
                 }
         }
     }
 
-    // calculate the probability
+    // calculate the probability of each tile by dividing the total
     // occurence of state of the cell / total occurence of positive or negative
     /*
         g_naive_bayes_probability[i][0] = g_naive_bayes_probability[i][0] / g_positive_counter;

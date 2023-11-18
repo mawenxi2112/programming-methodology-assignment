@@ -2,6 +2,7 @@
     "files.associations": {
         "raygui.h": "c",
         "raymath.h": "c",
-        "raylib.h": "c"
+        "raylib.h": "c",
+        "*.tcc": "c"
     }
 }
