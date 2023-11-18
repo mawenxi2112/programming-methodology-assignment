@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <time.h>
+#include <string.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include <lib/raygui.h>
@@ -43,11 +45,39 @@ typedef enum Tile
     CIRCLE
 } Tile;
 
-typedef struct Player
-{
+typedef enum Data_Result {
+    POSITIVE,
+    NEGATIVE
+} Data_Result;
+
+typedef struct Move {
+    int row;
+    int column;
+} Move;
+
+typedef struct Player {
     Player_Type type;
     Tile tile;
 } Player;
+
+typedef struct Data_Row {
+    Tile tile[9];
+    Data_Result result;
+} Data_Row;
+
+typedef struct Predicted_Result {
+    Data_Result result;
+    double score;
+} Predicted_Result;
+
+typedef struct Confusion_Matrix {
+    double true_positive;
+    double false_positive;
+    double true_negative;
+    double false_negative;
+    double probability_error;
+    double accuracy;
+} Confusion_Matrix;
 
 // offset is for the extra screenspace at the top during game
 #define UI_OFFSET 150
@@ -57,6 +87,9 @@ typedef struct Player
 #define BUTTON_HEIGHT 100
 #define COLUMN 3
 #define ROW 3
+#define MAX_DATASET_SIZE 958
+#define MAX_DATAROW_SIZE 28
+#define TRAINING_DATA_WEIGHT 0.8
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
@@ -77,6 +110,15 @@ bool IsTilePlaceable(int x, int y);
 void PopulateGrid(Tile tile);
 void CheckWinCondition();
 void ChangePlayerTurn();
+Data_Row get_current_grid();
+
+// ML Related Functions
+void read_ml_dataset(char file_name[50]);
+void shuffle_dataset();
+void naive_bayes_learn(float training_data_weight);
+Predicted_Result naive_bayes_predict(Data_Row data_row);
+Move get_naive_bayes_best_move();
+Confusion_Matrix calculate_confusion_matrix();
 
 // global variables
 // try not to access grid directly
@@ -89,6 +131,11 @@ DifficultyMode gameDifficultyMode;
 State Previous_State = NONE; 
 State Current_State = MENU;
 Texture2D cross_circle_texture;
+
+int g_dataset_count = 0;
+Data_Row g_dataset_array[MAX_DATASET_SIZE];
+double g_naive_bayes_probability[9][6];
+double g_positive_counter = 0, g_negative_counter = 0;
 
 // current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
@@ -108,6 +155,7 @@ int main(void)
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
     cross_circle_texture = LoadTexture("assets/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
+    read_ml_dataset("tictactoe_ml/tictactoe.txt");
 
     // main game loop
     while (!WindowShouldClose())
@@ -195,11 +243,16 @@ void StartGame()
         Player_One = (Player){PLAYER_HUMAN, CIRCLE};
         Player_Two = (Player){PLAYER_HUMAN, CROSS};
     }
-    else
+    else if (Current_Gamemode == AI_MINIMAX)
     {
-        // Testing AI cross/circle can delete
-        // Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-        // Player_Two = (Player){PLAYER_AI, CROSS};
+        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
+        Player_Two = (Player){PLAYER_AI, CROSS};
+    }
+    else if (Current_Gamemode == AI_ML)
+    {
+        shuffle_dataset();
+        naive_bayes_learn(TRAINING_DATA_WEIGHT);
+        calculate_confusion_matrix();
         Player_One = (Player){PLAYER_HUMAN, CIRCLE};
         Player_Two = (Player){PLAYER_AI, CROSS};
     }
@@ -236,6 +289,17 @@ void UpdateGame()
             }
             break;
         case AI_ML:
+            // receive user input and place tile
+            if (Current_Player == &Player_One)
+            {
+                HandleTilePlacement();
+            }
+            else if (Current_Player == &Player_Two)
+            {
+                Move best_move = get_naive_bayes_best_move();
+                SetTile(best_move.column, best_move.row, Player_Two.tile);
+                ChangePlayerTurn();
+            }
             break;
     }
 
@@ -251,6 +315,9 @@ void SetCurrentState(State state)
 // Function to handle tile placement logic
 void HandleTilePlacement()
 {
+    if (Winner != NULL || check_board_full())
+        return;
+
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
     {
         Vector2 mouse_position = GetMousePosition();
@@ -607,6 +674,21 @@ void ChangePlayerTurn()
         Current_Player = &Player_One;
 }
 
+Data_Row get_current_grid()
+{
+    Data_Row current_row;
+
+    for (int i = 0; i < ROW; i++)
+    {
+        for (int j = 0; j < COLUMN; j++)
+        {
+            current_row.tile[i * 3 + j] = Grid[i][j];
+        }
+    }
+
+    return current_row;
+}
+
 // Functions check if board is full return 1 if full else 0
 int check_board_full()
 {
@@ -662,7 +744,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 Grid[i][j] = is_max ? Player_Two.tile : Player_One.tile;
 
                 // Recursively calculate the minimax value
-                int move_val = miniMax(depth + 1, !is_max, max_depth, alpha, beta);
+                int move_val = mini_max(depth + 1, !is_max, max_depth, alpha, beta);
 
                 // Update the best value based on the current player (max or min)
                 best = is_max ? fmax(best, move_val) : fmin(best, move_val);
@@ -734,4 +816,258 @@ void mini_max_make_best_move()
 
     // make the best move
     Grid[best_move_row][best_move_column] = Player_Two.tile;
+}
+
+void read_ml_dataset(char file_name[50])
+{
+    // attempt to open file for reading
+    FILE *dataset_file = fopen(file_name, "r");
+
+    // error checking for file opening
+    if (!dataset_file)
+    {
+        printf("Error opening file %s\n", file_name);
+        exit(1);
+    }
+
+    char line[MAX_DATAROW_SIZE];
+    // Read from data in lines into the struct
+    while (g_dataset_count < MAX_DATASET_SIZE && fgets(line, sizeof(line), dataset_file))
+    {
+        // Remove the newline character from the end of each line
+        line[strcspn(line, "\n")] = '\0';
+
+        // go through each character in the line and assign respective tile to the struct
+        for (int i = 0; i < 17; i += 2)
+        {
+            if (line[i] == 'x')
+                g_dataset_array[g_dataset_count].tile[i / 2] = CROSS;
+            else if (line[i] == 'o')
+                g_dataset_array[g_dataset_count].tile[i / 2] = CIRCLE;
+            else if (line[i] == 'b')
+                g_dataset_array[g_dataset_count].tile[i / 2] = EMPTY;
+        }
+        // reverse the line and get the last token which is either POSTIIVE or NEGATIVE
+        // store the token into the struct
+        char *token = strrchr(line, ',') + 1;
+        
+        g_dataset_array[g_dataset_count].result = strcmp(token, "positive") ? POSITIVE : NEGATIVE;
+
+        g_dataset_count++;
+    }
+
+    printf("Total dataset count: %d\n", g_dataset_count);
+}
+
+void shuffle_dataset()
+{
+    srand(time(NULL));
+    
+    for (int i = g_dataset_count - 1; i > 0; i--)
+    {
+        int j;
+
+        do
+        {
+            j = rand() % (i + 1);
+        } while (i == j);
+
+        Data_Row temp_data_row = g_dataset_array[i];
+        g_dataset_array[i] = g_dataset_array[j];
+        g_dataset_array[j] = temp_data_row;
+    }
+}
+
+void naive_bayes_learn(float training_data_weight)
+{
+    // only use a portion of the total dataset for learning
+    int training_data_count = ceil(g_dataset_count * training_data_weight);
+
+    // loop through the training data and calculate the probability of each tile
+    for (int i = 0; i < training_data_count; i++)
+    {   
+        // get the current training data
+        Data_Row current_row = g_dataset_array[i];
+
+        // increment the positive and negative counter
+        if (current_row.result == POSITIVE)
+        {
+            g_positive_counter++;
+        }
+        else if (current_row.result == NEGATIVE)
+        {
+            g_negative_counter++;
+        }
+
+        // loop through each tile
+        for (int row = 0; row < 9; row++)
+        {
+            // increment the count of each tile
+            // 2d column array stores the count of each 
+            // current_row.result * 3 will offset the array index depending whether positive = 0 or negative = 0
+            switch (current_row.tile[row])
+                {
+                    case CROSS:
+                        g_naive_bayes_probability[row][0 + current_row.result * 3]++;
+                        break;
+                    case CIRCLE:
+                        g_naive_bayes_probability[row][1 + current_row.result * 3]++;
+                        break;
+                    case EMPTY:
+                        g_naive_bayes_probability[row][2 + current_row.result * 3]++;
+                        break;
+                }
+        }
+    }
+
+    // calculate the probability
+    // occurence of state of the cell / total occurence of positive or negative
+    /*
+        g_naive_bayes_probability[i][0] = g_naive_bayes_probability[i][0] / g_positive_counter;
+        g_naive_bayes_probability[i][1] = g_naive_bayes_probability[i][1] / g_positive_counter;
+        g_naive_bayes_probability[i][2] = g_naive_bayes_probability[i][2] / g_positive_counter;
+        g_naive_bayes_probability[i][3] = g_naive_bayes_probability[i][3] / g_negative_counter;
+        g_naive_bayes_probability[i][4] = g_naive_bayes_probability[i][4] / g_negative_counter;
+        g_naive_bayes_probability[i][5] = g_naive_bayes_probability[i][5] / g_negative_counter;
+    */
+
+    for (int i = 0; i < 9; i++)
+    {
+        for (int j = 0; j < 6; j++)
+        {
+            g_naive_bayes_probability[i][j] /= j < 3 ? g_positive_counter : g_negative_counter;
+        }
+    }
+
+    // we reuse the counters to store prior probability of positive p(P) and negative p(N)
+    g_positive_counter /= training_data_count;
+    g_negative_counter /= training_data_count;
+}
+
+Predicted_Result naive_bayes_predict(Data_Row data)
+{
+    // p(P) and p(N)
+    double positive_probability = g_positive_counter;
+    double negative_probability = g_negative_counter;
+    Predicted_Result predicted_result;
+
+    // loop through each tile and multiply the probability into the prior probability
+    // 0 - X positive
+    // 1 - O positive
+    // 2 - B positive
+    // 3 - X negative
+    // 4 - O negative
+    // 5 - B negative
+    for (int i = 0; i < 9; i++)
+    {
+        switch (data.tile[i])
+        {
+            case CROSS:
+                positive_probability *= g_naive_bayes_probability[i][0];
+                negative_probability *= g_naive_bayes_probability[i][3];
+                break;
+            case CIRCLE:
+                positive_probability *= g_naive_bayes_probability[i][1];
+                negative_probability *= g_naive_bayes_probability[i][4];
+                break;
+            case EMPTY:
+                positive_probability *= g_naive_bayes_probability[i][2];
+                negative_probability *= g_naive_bayes_probability[i][5];
+                break;
+        }
+    }
+
+    // compare whether the positive or negative is higher, will be the predicted probability
+    // if probability is equal, we will jsut take positive
+    if (fmax(positive_probability, negative_probability) == positive_probability)
+    {
+        printf("Positive\n");
+        predicted_result.result = POSITIVE;
+        predicted_result.score = positive_probability;
+    }
+    else
+    {
+        printf("Negative\n");
+        predicted_result.result = NEGATIVE;
+        predicted_result.score = negative_probability;
+    }
+
+    return predicted_result;
+}
+
+Move get_naive_bayes_best_move()
+{
+    double best_score = -1000;
+    bool positive_move_found = false;
+    Move best_move;
+
+    // we loop through the whole grid, if the grid is empty, we calculate the probability of the grid
+    for (int i = 0; i < ROW; i++)
+    {
+        for (int j = 0; j < COLUMN; j++)
+        {   
+            // if cell is empty, attempt move and see if it is the best move
+            if (Grid[i][j] == EMPTY)
+            {
+                Grid[i][j] = Player_Two.tile;
+                Predicted_Result predicted_result = naive_bayes_predict(get_current_grid());
+                Grid[i][j] = EMPTY;
+                printf("predicted result for row: %d, col: %d is %d score:%g \n", i, j, predicted_result.result, predicted_result.score);
+
+                if (predicted_result.result == POSITIVE || (predicted_result.result == NEGATIVE && !positive_move_found))
+                {
+                    if (predicted_result.result == POSITIVE)
+                        positive_move_found = true;
+
+                    if (predicted_result.score > best_score)
+                    {
+                        best_score = predicted_result.score;
+                        best_move.row = i;
+                        best_move.column = j;
+                    }
+                }
+            }
+        }
+    }
+    printf("best move row: %d, col: %d\n", best_move.row, best_move.column);
+    return best_move;
+}
+
+Confusion_Matrix calculate_confusion_matrix()
+{
+    int data_count = floor(g_dataset_count * (1 - TRAINING_DATA_WEIGHT));
+    Confusion_Matrix confusion_matrix = {0, 0, 0, 0, 0, 0};
+
+    for (int i = 0; i < data_count; i++)
+    {
+        Data_Row current_row = g_dataset_array[g_dataset_count - 1 - i];
+        Predicted_Result predicted_result = naive_bayes_predict(current_row);
+
+        if (predicted_result.result == current_row.result)
+        {
+            if (predicted_result.result == POSITIVE)
+                confusion_matrix.true_positive++;
+            else
+                confusion_matrix.true_negative++;
+        }
+        else
+        {
+            if (predicted_result.result == POSITIVE)
+                confusion_matrix.false_positive++;
+            else
+                confusion_matrix.false_negative++;
+        }
+    }
+
+    confusion_matrix.true_positive /= data_count;
+    confusion_matrix.true_negative /= data_count;
+    confusion_matrix.false_positive /= data_count;
+    confusion_matrix.false_negative /= data_count;
+
+    confusion_matrix.probability_error = confusion_matrix.false_positive + confusion_matrix.false_negative;
+    confusion_matrix.accuracy = (confusion_matrix.true_positive + confusion_matrix.true_negative) / (confusion_matrix.true_positive + confusion_matrix.true_negative + confusion_matrix.probability_error);
+
+    printf("probability error: %g\n", confusion_matrix.probability_error);
+    printf("accuracy: %g\n", confusion_matrix.accuracy);
+    return confusion_matrix;
 }
