@@ -810,7 +810,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 // Undo the move (backtrack)
                 g_grid[i][j] = EMPTY;
                 
-                // alpha-beta pruning codes!!!
+                // alpha-beta pruning codes
                 if (is_max)
                 {
                     alpha = fmax(alpha, move_val);
@@ -819,11 +819,14 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 {
                     beta = fmin(beta, move_val);
                 }
-
-                // Alpha-beta pruning
+                
+                /*
+                if beta is less than or equal to alpha, break out of the loop 
+                as the rest of the moves will not be considered
+                */ 
                 if (beta <= alpha)
                 {
-                    break;  // Prune the branch
+                    break; 
                 }
             }
         }
