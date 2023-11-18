@@ -90,6 +90,7 @@ typedef struct Confusion_Matrix {
 #define MAX_DATASET_SIZE 958
 #define MAX_DATAROW_SIZE 28
 #define TRAINING_DATA_WEIGHT 0.8
+#define NB_DATASET_FILE "tictactoe_ml/tictactoe.txt"
 const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
 const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
@@ -113,7 +114,7 @@ void ChangePlayerTurn();
 Data_Row get_current_grid();
 
 // ML Related Functions
-void read_ml_dataset(char file_name[50]);
+void read_ml_dataset(char file_name[]);
 void shuffle_dataset();
 void naive_bayes_learn(float training_data_weight);
 Predicted_Result naive_bayes_predict(Data_Row data_row);
@@ -152,10 +153,10 @@ void mini_max_make_best_move();
 
 int main(void)
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toeeee");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toe");
     cross_circle_texture = LoadTexture("assets/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
-    read_ml_dataset("tictactoe_ml/tictactoe.txt");
+    read_ml_dataset(NB_DATASET_FILE);
 
     // main game loop
     while (!WindowShouldClose())
@@ -851,7 +852,7 @@ void read_ml_dataset(char file_name[50])
         // store the token into the struct
         char *token = strrchr(line, ',') + 1;
         
-        g_dataset_array[g_dataset_count].result = strcmp(token, "positive") ? POSITIVE : NEGATIVE;
+        g_dataset_array[g_dataset_count].result = strcmp(token, "positive") == 0 ? POSITIVE : NEGATIVE;
 
         g_dataset_count++;
     }
