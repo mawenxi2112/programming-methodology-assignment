@@ -87,7 +87,7 @@ typedef struct Confusion_Matrix {
 #define BUTTON_HEIGHT 100
 #define COLUMN 3
 #define ROW 3
-#define GAME_END_DELAY 3
+#define GAME_END_DELAY 5
 
 // ML related constants
 #define MAX_DATASET_SIZE 958
@@ -485,9 +485,9 @@ void render_grid()
     if (gp_winner != NULL || is_board_full())
     {
         g_elapsed_time = (double)(clock() - g_start_time) / CLOCKS_PER_SEC;
-        if (g_elapsed_time > GAME_END_DELAY + g_start_time)
+        if (g_elapsed_time >= GAME_END_DELAY + g_start_time)
             set_current_state(GAMEOVER);
-        const char* countdown_timer = TextFormat("Game will end in %.2f", (GAME_END_DELAY + (float)g_start_time) - (float)g_elapsed_time);
+        const char* countdown_timer = TextFormat("Game will end in %.2f", (float)((GAME_END_DELAY + g_start_time) - g_elapsed_time));
         DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, BLACK);
         render_line(g_winner_start, g_winner_end, WIN_LINE_THICKNESS);
     }
