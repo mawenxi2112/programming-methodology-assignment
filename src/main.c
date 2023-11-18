@@ -60,10 +60,10 @@ typedef struct Player {
     Tile tile;
 } Player;
 
-typedef struct Data_Row {
+typedef struct ML_Data_Row {
     Tile tile[9];
     Data_Result result;
-} Data_Row;
+} ML_Data_Row;
 
 typedef struct Predicted_Result {
     Data_Result result;
@@ -79,7 +79,7 @@ typedef struct Confusion_Matrix {
     double accuracy;
 } Confusion_Matrix;
 
-// offset is for the extra screenspace at the top during game
+// ui related constants
 #define UI_OFFSET 150
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
@@ -87,54 +87,62 @@ typedef struct Confusion_Matrix {
 #define BUTTON_HEIGHT 100
 #define COLUMN 3
 #define ROW 3
+#define GAME_END_DELAY 3
+
+// ML related constants
 #define MAX_DATASET_SIZE 958
 #define MAX_DATAROW_SIZE 28
 #define TRAINING_DATA_WEIGHT 0.8
 #define NB_DATASET_FILE "tictactoe_ml/tictactoe.txt"
-const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
-const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
 
-void Init();
-void StartGame();
-void UpdateGameRender();
-void UpdateMenu();
-void UpdateSetting();
-void UpdateGame();
-void UpdatePause();
-void SetCurrentState(State state);
-void RenderGrid();
-void RenderTile(int x, int y, Tile tile);
-void RenderTextUI();
+void init();
+void start_game();
+void update_game_render();
+void update_menu();
+void update_setting();
+void update_game();
+void update_pause();
+void update_gameover();
+void set_current_state(State state);
+void render_grid();
+void render_tile(int x, int y, Tile tile);
+void render_text_ui();
+void render_line(Move start, Move end, float thickness);
 
-bool SetTile(int x, int y, Tile tile);
-bool IsTilePlaceable(int x, int y);
-void PopulateGrid(Tile tile);
-void CheckWinCondition();
-void ChangePlayerTurn();
-Data_Row get_current_grid();
+bool set_tile(int x, int y, Tile tile);
+bool is_tile_placeable(int x, int y);
+void populate_grid(Tile tile);
+bool check_win_condition();
+void change_player_turn();
+ML_Data_Row get_current_grid();
 
 // ML Related Functions
 void read_ml_dataset(char file_name[]);
 void shuffle_dataset();
 void naive_bayes_learn(float training_data_weight);
-Predicted_Result naive_bayes_predict(Data_Row data_row);
+Predicted_Result naive_bayes_predict(ML_Data_Row data_row);
 Move get_naive_bayes_best_move();
 Confusion_Matrix calculate_confusion_matrix();
 
 // global variables
-// try not to access grid directly
-Tile Grid[ROW][COLUMN];
-Player Player_One, Player_Two;
-Player *Current_Player;
-Player *Winner;
-Gamemode Current_Gamemode;
-DifficultyMode gameDifficultyMode;
-State Previous_State = NONE; 
-State Current_State = MENU;
-Texture2D cross_circle_texture;
+const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;
+const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;
+const float WIN_LINE_THICKNESS = CELL_WIDTH / 4;
+Tile g_grid[ROW][COLUMN];
+
+Player g_player_one, g_player_two;
+Player *gp_current_player;
+Player *gp_winner;
+Move g_winner_start, g_winner_end;
+Gamemode g_current_gamemode;
+DifficultyMode g_game_difficulty_mode;
+State g_previous_state = NONE, g_current_state = MENU;
+
+Texture2D g_cross_circle_texture;
+clock_t g_start_time, g_elapsed_time;
 
 int g_dataset_count = 0;
-Data_Row g_dataset_array[MAX_DATASET_SIZE];
+ML_Data_Row g_dataset_array[MAX_DATASET_SIZE];
 double g_naive_bayes_probability[9][6];
 double g_positive_counter = 0, g_negative_counter = 0;
 
@@ -145,16 +153,15 @@ double g_positive_counter = 0, g_negative_counter = 0;
 // index of each grid
 
 // zihao testing
-void HandleTilePlacement();
-void showWinMenu();
-int check_board_full();
+void handle_mouse_input();
+int is_board_full();
 int mini_max(int depth, int max_depth, int is_max, int alpha, int beta);
-void mini_max_make_best_move();
+Move get_mini_max_best_move();
 
 int main(void)
 {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toe");
-    cross_circle_texture = LoadTexture("assets/tictactoe.png");
+    g_cross_circle_texture = LoadTexture("assets/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
     read_ml_dataset(NB_DATASET_FILE);
 
@@ -162,28 +169,29 @@ int main(void)
     while (!WindowShouldClose())
     {
         // if state changes, run the state init
-        if (Previous_State != Current_State)
+        if (g_previous_state != g_current_state)
         {
-            Init();
-            Previous_State = Current_State;
+            init();
+            g_previous_state = g_current_state;
         }
 
-        switch (Current_State)
+        switch (g_current_state)
         {
             case MENU:
-                UpdateMenu();
+                update_menu();
                 break;
             case GAME:
-                UpdateGame();
-                UpdateGameRender();
+                update_game();
+                update_game_render();
                 break;
             case SETTING:
-                UpdateSetting();
+                update_setting();
                 break;
             case GAMEOVER:
+                update_gameover();
                 break;
             case PAUSE:
-                UpdatePause();
+                update_pause();
                 break;
             default:
                 exit(1);
@@ -194,9 +202,9 @@ int main(void)
     return 0;
 }
 
-void Init()
+void init()
 {
-    switch (Current_State)
+    switch (g_current_state)
     {
         case MENU:
             SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -220,103 +228,106 @@ void Init()
 
 // render update loop
 // functions related to rendering should reside here
-void UpdateGameRender()
+void update_game_render()
 {
-    if (Winner != NULL || check_board_full())
-    {
-        showWinMenu();
-        return;
-    }
     BeginDrawing();
     // clear screen and set white
     ClearBackground(RAYWHITE);
-    RenderGrid();
-    RenderTextUI();
+    render_grid();
+    render_text_ui();
     EndDrawing();
 }
 
 // start a fresh game of tic tac toe function
-void StartGame()
+void start_game()
 {
-    PopulateGrid(EMPTY);
-    if (Current_Gamemode == LOCAL)
+    populate_grid(EMPTY);
+    if (g_current_gamemode == LOCAL)
     {
-        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-        Player_Two = (Player){PLAYER_HUMAN, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
+        g_player_two = (Player){PLAYER_HUMAN, CROSS};
     }
-    else if (Current_Gamemode == AI_MINIMAX)
+    else if (g_current_gamemode == AI_MINIMAX)
     {
-        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-        Player_Two = (Player){PLAYER_AI, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
+        g_player_two = (Player){PLAYER_AI, CROSS};
     }
-    else if (Current_Gamemode == AI_ML)
+    else if (g_current_gamemode == AI_ML)
     {
         shuffle_dataset();
         naive_bayes_learn(TRAINING_DATA_WEIGHT);
         calculate_confusion_matrix();
-        Player_One = (Player){PLAYER_HUMAN, CIRCLE};
-        Player_Two = (Player){PLAYER_AI, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
+        g_player_two = (Player){PLAYER_AI, CROSS};
     }
-    Current_Player = &Player_One;
-    Winner = NULL;
+
+    gp_current_player = &g_player_one;
+    gp_winner = NULL;
 }
 
 // game logic update loop
-// functions related to rendering should reside here
-void UpdateGame()
+// functions related to game update / logic should reside here
+void update_game()
 {
     if (IsKeyReleased(KEY_ESCAPE))
     {
-        SetCurrentState(PAUSE);
+        set_current_state(PAUSE);
         return;
     }
 
-    switch (Current_Gamemode)
+    if (gp_winner != NULL || is_board_full())
+    {
+        return;
+    }
+
+    switch (g_current_gamemode)
     {
         case LOCAL:
             // receive user input and place tile
-            HandleTilePlacement();
+            handle_mouse_input();
             break;
         case AI_MINIMAX:
             // receive user input and place tile
-            if (Current_Player == &Player_One)
+            if (gp_current_player == &g_player_one)
             {
-                HandleTilePlacement();
+                handle_mouse_input();
             }
-            else if (Current_Player == &Player_Two)
+            else if (gp_current_player == &g_player_two)
             {
-                mini_max_make_best_move();
-                ChangePlayerTurn();
+                Move best_move = get_mini_max_best_move();
+                set_tile(best_move.row, best_move.column, g_player_two.tile);
+                change_player_turn();
             }
             break;
         case AI_ML:
             // receive user input and place tile
-            if (Current_Player == &Player_One)
+            if (gp_current_player == &g_player_one)
             {
-                HandleTilePlacement();
+                handle_mouse_input();
             }
-            else if (Current_Player == &Player_Two)
+            else if (gp_current_player == &g_player_two)
             {
                 Move best_move = get_naive_bayes_best_move();
-                SetTile(best_move.column, best_move.row, Player_Two.tile);
-                ChangePlayerTurn();
+                set_tile(best_move.row, best_move.column, g_player_two.tile);
+                change_player_turn();
             }
             break;
     }
-
-    CheckWinCondition();
 }
 
-void SetCurrentState(State state)
+void set_current_state(State state)
 {
-    Previous_State = Current_State;
-    Current_State = state;
+    if (g_current_state == state)
+        return;
+    
+    g_previous_state = g_current_state;
+    g_current_state = state;
 }
 
 // Function to handle tile placement logic
-void HandleTilePlacement()
+void handle_mouse_input()
 {
-    if (Winner != NULL || check_board_full())
+    if (gp_winner != NULL || is_board_full())
         return;
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
@@ -326,18 +337,17 @@ void HandleTilePlacement()
         if (mouse_position.y < UI_OFFSET)
             return;
 
-        int x = mouse_position.x / CELL_WIDTH;
-        int y = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
-        printf("x: %d, y: %d\n", x, y);
-        if (SetTile(x, y, Current_Player->tile))
+        int col = mouse_position.x / CELL_WIDTH;
+        int row = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
+        if (set_tile(row, col, gp_current_player->tile))
         {
-            ChangePlayerTurn();
+            change_player_turn();
         }
     }
 }
 
 // menu update loop
-void UpdateMenu()
+void update_menu()
 {
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -350,12 +360,12 @@ void UpdateMenu()
     DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
     {
-        SetCurrentState(GAME);
-        StartGame();
+        set_current_state(GAME);
+        start_game();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
     {
-        SetCurrentState(SETTING);
+        set_current_state(SETTING);
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
         CloseWindow();
@@ -364,14 +374,14 @@ void UpdateMenu()
 }
 
 // setting update loop
-void UpdateSetting()
+void update_setting()
 {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
     if (IsKeyReleased(KEY_ESCAPE))
     {
-        SetCurrentState(MENU);
+        set_current_state(MENU);
         return;
     }
 
@@ -382,18 +392,18 @@ void UpdateSetting()
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
 
-    GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int *)&Current_Gamemode);
-    if (Current_Gamemode == AI_MINIMAX)
+    GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int *)&g_current_gamemode);
+    if (g_current_gamemode == AI_MINIMAX)
     {
-        GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&gameDifficultyMode);
+        GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&g_game_difficulty_mode);
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        SetCurrentState(MENU);
+        set_current_state(MENU);
     EndDrawing();
 }
 
 // pause update loop
-void UpdatePause()
+void update_pause()
 {
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -405,35 +415,35 @@ void UpdatePause()
 
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Resume"))
-        SetCurrentState(GAME);
+        set_current_state(GAME);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
     {
-        SetCurrentState(GAME);
-        StartGame();
+        set_current_state(GAME);
+        start_game();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        SetCurrentState(MENU);
+        set_current_state(MENU);
 
     EndDrawing();
 }
 
 // SHOW WIN GAME MENU
-void showWinMenu()
+void update_gameover()
 {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
     char *TITLE = "Player 1 Wins!";
 
-    if (Winner == &Player_Two && Player_Two.type == PLAYER_AI)
+    if (gp_winner == &g_player_two && g_player_two.type == PLAYER_AI)
     {
         TITLE = "AI wins!";
     }
-    else if (Winner == &Player_Two)
+    else if (gp_winner == &g_player_two)
     {
         TITLE = "Player 2 Wins";
     }
-    else if (check_board_full() && Winner == NULL)
+    else if (is_board_full() && gp_winner == NULL)
     {
         TITLE = "Draw!";
     }
@@ -445,17 +455,17 @@ void showWinMenu()
 
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
     {
-        SetCurrentState(GAME);
-        StartGame();
+        set_current_state(GAME);
+        start_game();
     }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
-        SetCurrentState(MENU);
+        set_current_state(MENU);
 
     EndDrawing();
 }
 
 // main grid rendering function
-void RenderGrid()
+void render_grid()
 {
     for (int i = 0; i < ROW; i++)
         for (int j = 0; j < COLUMN; j++)
@@ -465,14 +475,24 @@ void RenderGrid()
             int CELL_HALF_WIDTH = CELL_WIDTH / 2;
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
 
-            RenderTile(x_coord, y_coord, Grid[i][j]);
-            const char *tile_index = TextFormat("[%d, %d]", i, j);
-            DrawText(tile_index, x_coord + CELL_HALF_WIDTH - MeasureText(tile_index, 20) / 2, y_coord + CELL_HALF_WIDTH - 10, 20, BLACK);
+            render_tile(x_coord, y_coord, g_grid[i][j]);
+            //const char *tile_index = TextFormat("[%d, %d]", i, j);
+            //DrawText(tile_index, x_coord + CELL_HALF_WIDTH - MeasureText(tile_index, 20) / 2, y_coord + CELL_HALF_WIDTH - 10, 20, BLACK);
         }
+
+    if (gp_winner != NULL || is_board_full())
+    {
+        g_elapsed_time = (double)(clock() - g_start_time) / CLOCKS_PER_SEC;
+        if (g_elapsed_time > GAME_END_DELAY + g_start_time)
+            set_current_state(GAMEOVER);
+        const char* countdown_timer = TextFormat("Game will end in %.2f", (GAME_END_DELAY + (float)g_start_time) - (float)g_elapsed_time);
+        DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, BLACK);
+        render_line(g_winner_start, g_winner_end, WIN_LINE_THICKNESS);
+    }
 }
 
 // function to render a specific tile
-void RenderTile(int x_coord, int y_coord, Tile tile)
+void render_tile(int x_coord, int y_coord, Tile tile)
 {   
     Rectangle destination = {x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT};
     Rectangle source;
@@ -481,11 +501,11 @@ void RenderTile(int x_coord, int y_coord, Tile tile)
     {
     case CROSS:
         source = (Rectangle){0, 0, 100, 100};
-        DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
         break;
     case CIRCLE:
         source = (Rectangle){100, 0, 100, 100};
-        DrawTexturePro(cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
         break;
     case EMPTY:
         break;
@@ -493,35 +513,42 @@ void RenderTile(int x_coord, int y_coord, Tile tile)
 }
 
 // render function for the title text
-void RenderTextUI()
+void render_text_ui()
 {
-    if (Winner != NULL)
+    if (gp_winner != NULL)
     {
-        if (Winner == &Player_One)
+        if (gp_winner == &g_player_one)
             DrawText("Player 1 wins!", 10, 10, 20, BLACK);
-        else if (Winner == &Player_Two)
+        else if (gp_winner == &g_player_two)
             DrawText("Player 2 wins!", 10, 10, 20, BLACK);
     }
     else
     {
-        if (Current_Player == &Player_One)
+        if (gp_current_player == &g_player_one)
             DrawText("Player 1's turn", 10, 10, 20, BLACK);
-        else if (Current_Player)
+        else if (gp_current_player)
             DrawText("Player 2's turn", 10, 10, 20, BLACK);
     }
 
-    Vector2 mouse_position = GetMousePosition();
-    const char *mouse_position_text = TextFormat("Mouse Position: (%.0f, %.0f)", mouse_position.x, mouse_position.y);
-    DrawText(mouse_position_text, 10, 20, 20, BLACK);
+}
+
+void render_line(Move start, Move end, float thickness)
+{
+    Vector2 start_position = {start.column * CELL_WIDTH + CELL_WIDTH / 2, start.row * CELL_HEIGHT + CELL_HEIGHT / 2 + UI_OFFSET};
+    Vector2 end_position = {end.column * CELL_WIDTH + CELL_WIDTH / 2, end.row * CELL_HEIGHT + CELL_HEIGHT / 2 + UI_OFFSET};
+    static const Color red_translucent = (Color){255, 0, 0, 150};
+    DrawLineEx(start_position, end_position, thickness, red_translucent);
 }
 
 // setter for tile
 // use this instead of accessing array directly
-bool SetTile(int x, int y, Tile tile)
+bool set_tile(int row, int col, Tile tile)
 {
-    if (IsTilePlaceable(x, y))
+    if (is_tile_placeable(row, col))
     {
-        Grid[y][x] = tile;
+        g_grid[row][col] = tile;
+        if(check_win_condition())
+            g_start_time = (double)clock() / CLOCKS_PER_SEC;
         return true;
     }
     else
@@ -529,27 +556,26 @@ bool SetTile(int x, int y, Tile tile)
 }
 
 // check if tile is empty and able to place
-bool IsTilePlaceable(int x, int y)
+bool is_tile_placeable(int row, int col)
 {
-    if (Grid[y][x] == EMPTY)
+    if (g_grid[row][col] == EMPTY)
         return true;
     else
         return false;
 }
 
 // populate the grid according to tile
-void PopulateGrid(Tile tile)
+void populate_grid(Tile tile)
 {
     for (int i = 0; i < ROW; i++)
         for (int j = 0; j < COLUMN; j++)
-            Grid[i][j] = tile;
+            g_grid[i][j] = tile;
 }
 
 // function to check win condition
-void CheckWinCondition()
+bool check_win_condition()
 {
     Tile temp;
-
     // loop through each row, and compare columns
     // algo to check each row
     for (int i = 0; i < ROW; i++)
@@ -557,25 +583,28 @@ void CheckWinCondition()
         {
             if (j == 0)
             {
-                temp = Grid[i][j];
+                temp = g_grid[i][j];
+                g_winner_start = (Move){i, j};
                 continue;
             }
-            else if (temp != Grid[i][j])
+            else if (temp != g_grid[i][j])
             {
                 temp = EMPTY;
                 break;
             }
             else if (j == COLUMN - 1)
             {
-                if (Player_One.tile == temp)
+                if (g_player_one.tile == temp)
                 {
-                    Winner = &Player_One;
-                    return;
+                    gp_winner = &g_player_one;
+                    g_winner_end = (Move){i, j};
+                    return true;
                 }
-                else if (Player_Two.tile == temp)
+                else if (g_player_two.tile == temp)
                 {
-                    Winner = &Player_Two;
-                    return;
+                    gp_winner = &g_player_two;
+                    g_winner_end = (Move){i, j};
+                    return true;
                 }
             }
         }
@@ -587,25 +616,28 @@ void CheckWinCondition()
         {
             if (j == 0)
             {
-                temp = Grid[j][i];
+                temp = g_grid[j][i];
+                g_winner_start = (Move){j, i};
                 continue;
             }
-            else if (temp != Grid[j][i])
+            else if (temp != g_grid[j][i])
             {
                 temp = EMPTY;
                 break;
             }
             else if (j == ROW - 1)
             {
-                if (Player_One.tile == temp)
+                if (g_player_one.tile == temp)
                 {
-                    Winner = &Player_One;
-                    return;
+                    gp_winner = &g_player_one;
+                    g_winner_end = (Move){j, i};
+                    return true;
                 }
-                else if (Player_Two.tile == temp)
+                else if (g_player_two.tile == temp)
                 {
-                    Winner = &Player_Two;
-                    return;
+                    gp_winner = &g_player_two;
+                    g_winner_end = (Move){j, i};
+                    return true;
                 }
             }
         }
@@ -615,25 +647,28 @@ void CheckWinCondition()
     {
         if (i == 0)
         {
-            temp = Grid[i][i];
+            temp = g_grid[i][i];
+            g_winner_start = (Move){i, i};
             continue;
         }
-        else if (temp != Grid[i][i])
+        else if (temp != g_grid[i][i])
         {
             temp = EMPTY;
             break;
         }
         else if (i == ROW - 1)
         {
-            if (Player_One.tile == temp)
+            if (g_player_one.tile == temp)
             {
-                Winner = &Player_One;
-                return;
+                gp_winner = &g_player_one;
+                g_winner_end = (Move){i, i};
+                return true;
             }
-            else if (Player_Two.tile == temp)
+            else if (g_player_two.tile == temp)
             {
-                Winner = &Player_Two;
-                return;
+                gp_winner = &g_player_two;
+                g_winner_end = (Move){i, i};
+                return true;
             }
         }
     }
@@ -643,47 +678,52 @@ void CheckWinCondition()
     {
         if (i == 0)
         {
-            temp = Grid[ROW - 1 - i][i];
+            temp = g_grid[ROW - 1 - i][i];
+            g_winner_start = (Move){ROW - 1 - i, i};
             continue;
         }
-        else if (temp != Grid[ROW - 1 - i][i])
+        else if (temp != g_grid[ROW - 1 - i][i])
         {
             temp = EMPTY;
             break;
         }
         else if (i == ROW - 1)
         {
-            if (Player_One.tile == temp)
+            if (g_player_one.tile == temp)
             {
-                Winner = &Player_One;
-                return;
+                gp_winner = &g_player_one;
+                g_winner_end = (Move){ROW - 1 - i, i};
+                return true;
             }
-            else if (Player_Two.tile == temp)
+            else if (g_player_two.tile == temp)
             {
-                Winner = &Player_Two;
-                return;
+                gp_winner = &g_player_two;
+                g_winner_end = (Move){ROW - 1 - i, i};
+                return true;
             }
         }
     }
+
+    return false;
 }
 
-void ChangePlayerTurn()
+void change_player_turn()
 {
-    if (Current_Player == &Player_One)
-        Current_Player = &Player_Two;
-    else if (Current_Player == &Player_Two)
-        Current_Player = &Player_One;
+    if (gp_current_player == &g_player_one)
+        gp_current_player = &g_player_two;
+    else if (gp_current_player == &g_player_two)
+        gp_current_player = &g_player_one;
 }
 
-Data_Row get_current_grid()
+ML_Data_Row get_current_grid()
 {
-    Data_Row current_row;
+    ML_Data_Row current_row;
 
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
         {
-            current_row.tile[i * 3 + j] = Grid[i][j];
+            current_row.tile[i * 3 + j] = g_grid[i][j];
         }
     }
 
@@ -691,13 +731,13 @@ Data_Row get_current_grid()
 }
 
 // Functions check if board is full return 1 if full else 0
-int check_board_full()
+int is_board_full()
 {
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
         {
-            if (Grid[i][j] == EMPTY)
+            if (g_grid[i][j] == EMPTY)
             {
                 return 0;
             }
@@ -707,16 +747,16 @@ int check_board_full()
 }
 
 int evaluate(){
-    CheckWinCondition();
+    check_win_condition();
 
-    if (Winner == &Player_Two) // Check if Player_Two has won, return 1
+    if (gp_winner == &g_player_two) // Check if g_player_two has won, return 1
     {
-        Winner = NULL;
+        gp_winner = NULL;
         return 1;
     }
-    else if(Winner == &Player_One) // Check if Player_One has won, return -1
+    else if(gp_winner == &g_player_one) // Check if g_player_one has won, return -1
     {
-        Winner = NULL;
+        gp_winner = NULL;
         return -1;
     }
     
@@ -729,7 +769,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
     int score = evaluate();
 
     if (score != 0) return score;
-    if (check_board_full() || depth == max_depth) return 0;
+    if (is_board_full() || depth == max_depth) return 0;
 
     // initalize a best value base on the current player (max or min)
     int best = is_max ? -1000 : 1000;
@@ -739,10 +779,10 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
     {
         for (int j = 0; j < COLUMN; j++)
         {
-            if (Grid[i][j] == EMPTY)
+            if (g_grid[i][j] == EMPTY)
             {
                 // Temporarily set the cell with the current player's tile
-                Grid[i][j] = is_max ? Player_Two.tile : Player_One.tile;
+                g_grid[i][j] = is_max ? g_player_two.tile : g_player_one.tile;
 
                 // Recursively calculate the minimax value
                 int move_val = mini_max(depth + 1, !is_max, max_depth, alpha, beta);
@@ -751,7 +791,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 best = is_max ? fmax(best, move_val) : fmin(best, move_val);
 
                 // Undo the move (backtrack)
-                Grid[i][j] = EMPTY;
+                g_grid[i][j] = EMPTY;
                 
                 // alpha-beta pruning codes!!!
                 if (is_max)
@@ -775,48 +815,47 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
     return best;
 }
 
-void mini_max_make_best_move()
+Move get_mini_max_best_move()
 {   
     // Set initial difficult of miniMax mod to easy to look only 1 move ahead
     int difficulty = 0;
 
     // if difficulty is medium or hard update difficulty
-    if(gameDifficultyMode == MEDIUM)
+    if(g_game_difficulty_mode == MEDIUM)
         difficulty = 1; 
-    else if(gameDifficultyMode == HARD)
+    else if(g_game_difficulty_mode == HARD)
         difficulty = 8;
 
     // initial best value to a very low value
     int best_val = -1000;
 
     // initialize best move row and column value
-    int best_move_row = -1;
-    int best_move_column = -1;
-
+    Move best_move = {-1, -1};
+ 
     // Loop through the board cells
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
         {
             // if cell is empty, attempt move and see if it is the best move
-            if (Grid[i][j] == EMPTY)
+            if (g_grid[i][j] == EMPTY)
             {
-                Grid[i][j] = Player_Two.tile;
+                g_grid[i][j] = g_player_two.tile;
                 int move_val = mini_max(0, 0, difficulty, -1000, 1000);
-                Grid[i][j] = EMPTY;
+                g_grid[i][j] = EMPTY;
                 // if move_val is better than best_val, update best_val and best_move_row and best_move_column
                 if (move_val > best_val)
                 {
-                    best_move_row = i;
-                    best_move_column = j;
+                    best_move.row = i;
+                    best_move.column = j;
                     best_val = move_val;
                 }
             }
         }
     }
 
-    // make the best move
-    Grid[best_move_row][best_move_column] = Player_Two.tile;
+    // return the best move
+    return best_move;
 }
 
 void read_ml_dataset(char file_name[])
@@ -873,7 +912,7 @@ void shuffle_dataset()
             j = rand() % (i + 1);
         } while (i == j);
 
-        Data_Row temp_data_row = g_dataset_array[i];
+        ML_Data_Row temp_data_row = g_dataset_array[i];
         g_dataset_array[i] = g_dataset_array[j];
         g_dataset_array[j] = temp_data_row;
     }
@@ -881,6 +920,11 @@ void shuffle_dataset()
 
 void naive_bayes_learn(float training_data_weight)
 {
+    // reset counters and probability array
+    g_positive_counter = 0;
+    g_negative_counter = 0;
+    memset(g_naive_bayes_probability, 0, sizeof(g_naive_bayes_probability));
+
     // only use a portion of the total dataset for learning
     int training_data_count = ceil(g_dataset_count * training_data_weight);
 
@@ -888,7 +932,7 @@ void naive_bayes_learn(float training_data_weight)
     for (int i = 0; i < training_data_count; i++)
     {   
         // get the current training data
-        Data_Row current_row = g_dataset_array[i];
+        ML_Data_Row current_row = g_dataset_array[i];
 
         // increment the positive and negative counter
         if (current_row.result == POSITIVE)
@@ -949,7 +993,7 @@ void naive_bayes_learn(float training_data_weight)
     g_negative_counter /= training_data_count;
 }
 
-Predicted_Result naive_bayes_predict(Data_Row data)
+Predicted_Result naive_bayes_predict(ML_Data_Row data)
 {
     // p(P) and p(N)
     double positive_probability = g_positive_counter;
@@ -1012,11 +1056,11 @@ Move get_naive_bayes_best_move()
         for (int j = 0; j < COLUMN; j++)
         {   
             // if cell is empty, attempt move and see if it is the best move
-            if (Grid[i][j] == EMPTY)
+            if (g_grid[i][j] == EMPTY)
             {
-                Grid[i][j] = Player_Two.tile;
+                g_grid[i][j] = g_player_two.tile;
                 Predicted_Result predicted_result = naive_bayes_predict(get_current_grid());
-                Grid[i][j] = EMPTY;
+                g_grid[i][j] = EMPTY;
                 printf("predicted result for row: %d, col: %d is %d score:%g \n", i, j, predicted_result.result, predicted_result.score);
 
                 if (predicted_result.result == POSITIVE || (predicted_result.result == NEGATIVE && !positive_move_found))
@@ -1045,7 +1089,7 @@ Confusion_Matrix calculate_confusion_matrix()
 
     for (int i = 0; i < data_count; i++)
     {
-        Data_Row current_row = g_dataset_array[g_dataset_count - 1 - i];
+        ML_Data_Row current_row = g_dataset_array[g_dataset_count - 1 - i];
         Predicted_Result predicted_result = naive_bayes_predict(current_row);
 
         if (predicted_result.result == current_row.result)
