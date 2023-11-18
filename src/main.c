@@ -108,6 +108,7 @@ void render_grid();
 void render_tile(int x, int y, Tile tile);
 void render_text_ui();
 void render_line(Move start, Move end, float thickness);
+void render_confusion_matrix(Confusion_Matrix confusion_matrix);
 
 bool set_tile(int x, int y, Tile tile);
 bool is_tile_placeable(int x, int y);
@@ -145,6 +146,7 @@ int g_dataset_count = 0;
 ML_Data_Row g_dataset_array[MAX_DATASET_SIZE];
 double g_naive_bayes_probability[9][6];
 double g_positive_counter = 0, g_negative_counter = 0;
+Confusion_Matrix g_current_confusion_matrix;
 
 // current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
@@ -256,7 +258,7 @@ void start_game()
     {
         shuffle_dataset();
         naive_bayes_learn(TRAINING_DATA_WEIGHT);
-        calculate_confusion_matrix();
+        g_current_confusion_matrix = calculate_confusion_matrix();
         g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
         g_player_two = (Player){PLAYER_AI, CROSS};
     }
@@ -531,6 +533,8 @@ void render_text_ui()
     }
 
 }
+
+
 
 void render_line(Move start, Move end, float thickness)
 {
