@@ -453,7 +453,7 @@ void update_gameover()
     }
     else if (gp_winner == &g_player_two)
     {
-        TITLE = "Player 2 Wins";
+        TITLE = "Player 2 Wins!";
     }
     else if (is_board_full() && gp_winner == NULL)
     {
@@ -763,12 +763,13 @@ Reset the gp_winner pointer to NULL after evaluation. Mainly used for minimax al
 int evaluate(){
     check_win_condition();
 
-    if (gp_winner == &g_player_two) // Check if g_player_two has won, return 1
+    // if g_player_two has won, return 1, reset gp_winner to NULL
+    if (gp_winner == &g_player_two)
     {
         gp_winner = NULL;
         return 1;
     }
-    else if(gp_winner == &g_player_one) // Check if g_player_one has won, return -1
+    else if(gp_winner == &g_player_one)
     {
         gp_winner = NULL;
         return -1;
@@ -791,23 +792,23 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
     // initalize a best value base on the current player (max or min)
     int best = is_max ? -1000 : 1000;
 
-    // Loop through the board cells
+    // loop through the board cells
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
         {
             if (g_grid[i][j] == EMPTY)
             {
-                // Temporarily set the cell with the current player's tile
+                // temporarily set the cell with the current player's tile
                 g_grid[i][j] = is_max ? g_player_two.tile : g_player_one.tile;
 
-                // Recursively calculate the minimax value
+                // recursively calculate the minimax value
                 int move_val = mini_max(depth + 1, !is_max, max_depth, alpha, beta);
 
-                // Update the best value based on the current player (max or min)
+                // update the best value based on the current player (max or min)
                 best = is_max ? fmax(best, move_val) : fmin(best, move_val);
 
-                // Undo the move (backtrack)
+                // undo the move (backtrack)
                 g_grid[i][j] = EMPTY;
                 
                 // alpha-beta pruning codes
@@ -840,7 +841,7 @@ Returns the best move for the minimax player using the minimax algorithm
 */
 Move get_mini_max_best_move()
 {   
-    // Set initial difficult of miniMax mod to easy to look only 1 move ahead
+    // set initial difficult of miniMax mod to easy to look only 1 move ahead
     int difficulty = 0;
 
     // if difficulty is medium or hard update difficulty
@@ -855,7 +856,7 @@ Move get_mini_max_best_move()
     // initialize best move row and column value
     Move best_move = {-1, -1};
  
-    // Loop through the board cells
+    // loop through the board cells
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
@@ -897,10 +898,10 @@ void read_ml_dataset(char file_name[])
     }
 
     char line[MAX_DATAROW_SIZE];
-    // Read from data in lines into the struct
+    // read from data in lines into the struct
     while (g_dataset_count < MAX_DATASET_SIZE && fgets(line, sizeof(line), dataset_file))
     {
-        // Remove the newline character from the end of each line
+        // remove the newline character from the end of each line
         line[strcspn(line, "\n")] = '\0';
 
         // go through each character in the line and assign respective tile to the struct
@@ -1007,8 +1008,10 @@ void naive_bayes_learn(float training_data_weight)
         }
     }
 
-    // calculate the probability of each tile by taking the total
-    // occurence of state of the cell / total occurence of positive or negative
+    /*
+    calculate the probability of each tile by taking the total
+    occurence of state of the cell / total occurence of positive or negative
+    */
     for (int row = 0; row < 9; row++)
     {
         for (int col = 0; col < 6; col++)
@@ -1106,7 +1109,7 @@ Move get_naive_bayes_best_move()
     bool positive_move_found = false;
     Move best_move = {-1, -1};
 
-    // we loop through the whole grid, if the grid is empty, we calculate the probability of the grid
+    // loop through the grid, if cell is empty, place tile and calculate the score
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
@@ -1153,31 +1156,31 @@ Confusion_Matrix calculate_confusion_matrix()
     // loop through the data and predict the result
     for (int i = 0; i < data_count; i++)
     {
-        // Read the data from the end of the dataset_array up to 1 - TRAINING_DATA_WEIGHT % of the dataset
+        // read the data from the end of the dataset_array up to 1 - TRAINING_DATA_WEIGHT % of the dataset
         ML_Data_Row current_row = g_dataset_array[g_dataset_count - 1 - i];
         Predicted_Result predicted_result = naive_bayes_predict(current_row);
 
         if (predicted_result.result == current_row.result)
         {   
             if (predicted_result.result == POSITIVE)
-                // Predicted result is positive and actual result is positive
+                // predicted result is positive and actual result is positive
                 confusion_matrix.true_positive++; 
             else
-                // Predicted result is negative and actual result is negative
+                // predicted result is negative and actual result is negative
                 confusion_matrix.true_negative++; 
         }
         else
         {
             if (predicted_result.result == POSITIVE)
-                // Predicted result is positive and actual result is negative
+                // predicted result is positive and actual result is negative
                 confusion_matrix.false_positive++; 
             else
-                // Predicted result is negative and actual result is positive
+                // predicted result is negative and actual result is positive
                 confusion_matrix.false_negative++;
         }
     }
 
-    // Divide the total count of each result by the total data count to get the probability
+    // divide the total count of each result by the total data count to get the probability
     confusion_matrix.true_positive /= data_count;
     confusion_matrix.true_negative /= data_count;
     confusion_matrix.false_positive /= data_count;
