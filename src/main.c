@@ -108,7 +108,6 @@ void render_grid();
 void render_tile(int x, int y, Tile tile);
 void render_text_ui();
 void render_line(Move start, Move end, float thickness);
-void render_confusion_matrix(Confusion_Matrix confusion_matrix);
 
 bool set_tile(int x, int y, Tile tile);
 bool is_tile_placeable(int x, int y);
@@ -399,6 +398,14 @@ void update_setting()
     {
         GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&g_game_difficulty_mode);
     }
+    else if(g_current_gamemode == AI_ML){
+        //Draw confusion matrix as a table, TP(True Positive), FP(False Positive), TN(True Negative), FN(False Negative)
+        GuiGroupBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Confusion Matrix");
+        DrawText(TextFormat("TP: %g", g_current_confusion_matrix.true_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 10, 20, BLACK);
+        DrawText(TextFormat("FP: %g", g_current_confusion_matrix.false_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 30, 20, BLACK);
+        DrawText(TextFormat("TN: %g", g_current_confusion_matrix.true_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 50, 20, BLACK);
+        DrawText(TextFormat("FN: %g", g_current_confusion_matrix.false_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 70, 20, BLACK);
+    }
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         set_current_state(MENU);
     EndDrawing();
@@ -474,7 +481,6 @@ void render_grid()
         {
             int x_coord = j * CELL_WIDTH;
             int y_coord = i * CELL_HEIGHT + UI_OFFSET;
-            int CELL_HALF_WIDTH = CELL_WIDTH / 2;
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
 
             render_tile(x_coord, y_coord, g_grid[i][j]);
@@ -489,7 +495,9 @@ void render_grid()
             set_current_state(GAMEOVER);
         const char* countdown_timer = TextFormat("Game will end in %.2f", (float)((GAME_END_DELAY + g_start_time) - g_elapsed_time));
         DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, BLACK);
-        render_line(g_winner_start, g_winner_end, WIN_LINE_THICKNESS);
+        // if board is full and no winner, dont draw line, however if board is full but winner is found, draw line, else draw line if winner is found
+        if (!is_board_full() || gp_winner != NULL)
+            render_line(g_winner_start, g_winner_end, WIN_LINE_THICKNESS);
     }
 }
 
