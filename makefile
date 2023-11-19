@@ -25,7 +25,7 @@
 .PHONY: all clean
 
 # Define required raylib variables
-PROJECT_NAME       ?= main
+PROJECT_NAME       ?= tic_tac_toe
 RAYLIB_VERSION     ?= 4.2.0
 RAYLIB_PATH        ?= ..\..
 

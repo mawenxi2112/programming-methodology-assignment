@@ -13,7 +13,7 @@
             "windows": {
                 "command": "C:/msys64/mingw64/bin/mingw32-make.exe",
                 "args": [
-                    "RAYLIB_PATH=C:/raylib/raylib",
+                    "RAYLIB_PATH=raylib-master",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_win.exe",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
@@ -21,7 +21,7 @@
             },
             "osx": {
                 "args": [
-                    "RAYLIB_PATH=/Users/wnxi/repos/raylib",
+                    "RAYLIB_PATH=raylib-master",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_mac",
                     "OBJS=src/${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
@@ -34,6 +34,39 @@
             "problemMatcher": [
                 "$gcc"
             ]
+        },
+        {
+            "label": "build release",
+            "type": "process",
+            "command": "make",
+            "args": [
+                "PLATFORM=PLATFORM_DESKTOP",
+                "PROJECT_NAME=${fileBasenameNoExtension}",
+                "OBJS=${fileBasenameNoExtension}.c"
+            ],
+            "windows": {
+                "command": "C:/msys64/mingw64/bin/mingw32-make.exe",
+                "args": [
+                    "RAYLIB_PATH=raylib-master",
+                    "PROJECT_NAME=bin/${fileBasenameNoExtension}_win.exe",
+                    "OBJS=src/${fileBasenameNoExtension}.c"
+                ]
+            },
+            "osx": {
+                "args": [
+                    "RAYLIB_PATH=raylib-master",
+                    "PROJECT_NAME=bin/${fileBasenameNoExtension}_mac",
+                    "OBJS=src/${fileBasenameNoExtension}.c"
+                ]
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "detail": "compiler: C:\\raylib\\w64devkit\\bin\\g++.exe"
         }
     ],
     "version": "2.0.0"

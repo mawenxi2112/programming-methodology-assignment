@@ -27,6 +27,27 @@
               "MIMode": "lldb"
             },
             "preLaunchTask": "build debug"
+        },
+        {
+          "name": "Run",
+          "type": "cppdbg",
+          "request": "launch",
+          "args": [],
+          "stopAtEntry": false,
+          "cwd": "${workspaceFolder}",
+          "environment": [],
+          "externalConsole": false,
+          "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+          "MIMode": "gdb",
+          "windows": {
+            "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}_win.exe",
+            "miDebuggerPath": "C:/raylib/w64devkit/bin/gdb.exe"
+          },
+          "osx": {
+            "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}_mac",
+            "MIMode": "lldb"
+          },
+          "preLaunchTask": "build release",
         }
     ],
     "version": "2.0.0"
