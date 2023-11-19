@@ -54,7 +54,7 @@
             },
             "osx": {
                 "args": [
-                    "RAYLIB_PATH=Users/wnxi/repos/raylib",
+                    "RAYLIB_PATH=${workspaceRoot}/raylib-master",
                     "PROJECT_NAME=bin/${fileBasenameNoExtension}_mac",
                     "OBJS=src/${fileBasenameNoExtension}.c"
                 ]

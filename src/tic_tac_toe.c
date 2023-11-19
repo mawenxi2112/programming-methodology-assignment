@@ -101,8 +101,8 @@ void init();
 void start_game();
 void update_game_render();
 void update_menu();
-void update_setting();
 void update_game();
+void update_setting();
 void update_pause();
 void update_gameover();
 void set_current_state(State state);
@@ -111,12 +111,12 @@ void change_player_turn();
 
 // function prototypes for grid logic
 void render_grid();
-void render_tile(int x, int y, Tile tile);
+void render_tile(int x_coord, int y_coord, Tile tile);
 void render_text_ui();
 void render_line(Move start, Move end, float thickness);
 void populate_grid(Tile tile);
-bool set_tile(int x, int y, Tile tile);
-bool is_tile_placeable(int x, int y);
+bool set_tile(int row, int col, Tile tile);
+bool is_tile_placeable(int row, int col);
 
 // function prototypes for win condition logic
 int is_board_full();
@@ -124,7 +124,7 @@ int evaluate();
 bool check_win_condition();
 
 // function prototypes for minimax logic
-int mini_max(int depth, int max_depth, int is_max, int alpha, int beta);
+int mini_max(int depth, int is_max, int max_depth, int alpha, int beta);
 Move get_mini_max_best_move();
 
 // function prototypes for ML logic
@@ -236,18 +236,6 @@ void init()
     }
 }
 
-// render update loop
-// functions related to rendering should reside here
-void update_game_render()
-{
-    BeginDrawing();
-    // clear screen and set white
-    ClearBackground(RAYWHITE);
-    render_grid();
-    render_text_ui();
-    EndDrawing();
-}
-
 // start a fresh game of tic tac toe function
 void start_game()
 {
@@ -273,6 +261,42 @@ void start_game()
 
     gp_current_player = &g_player_one;
     gp_winner = NULL;
+}
+
+// render update loop
+// functions related to rendering should reside here
+void update_game_render()
+{
+    BeginDrawing();
+    // clear screen and set white
+    ClearBackground(RAYWHITE);
+    render_grid();
+    render_text_ui();
+    EndDrawing();
+}
+
+// menu update loop
+void update_menu()
+{
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+
+    const char *MENU_TITLE = "Tic Tac Toe";
+
+    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
+    {
+        set_current_state(GAME);
+        start_game();
+    }
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
+    {
+        set_current_state(SETTING);
+    }
+    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
+        CloseWindow();
+
+    EndDrawing();
 }
 
 // game logic update loop
@@ -325,60 +349,6 @@ void update_game()
     }
 }
 
-void set_current_state(State state)
-{
-    if (g_current_state == state)
-        return;
-    
-    g_previous_state = g_current_state;
-    g_current_state = state;
-}
-
-// Function to handle tile placement logic
-void handle_mouse_input()
-{
-    if (gp_winner != NULL || is_board_full())
-        return;
-
-    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-    {
-        Vector2 mouse_position = GetMousePosition();
-
-        if (mouse_position.y < UI_OFFSET)
-            return;
-
-        int col = mouse_position.x / CELL_WIDTH;
-        int row = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
-        if (set_tile(row, col, gp_current_player->tile))
-        {
-            change_player_turn();
-        }
-    }
-}
-
-// menu update loop
-void update_menu()
-{
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-
-    const char *MENU_TITLE = "Tic Tac Toe";
-
-    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
-    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
-    {
-        set_current_state(GAME);
-        start_game();
-    }
-    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
-    {
-        set_current_state(SETTING);
-    }
-    if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
-        CloseWindow();
-
-    EndDrawing();
-}
 
 // setting update loop
 void update_setting()
@@ -473,6 +443,49 @@ void update_gameover()
     EndDrawing();
 }
 
+void set_current_state(State state)
+{
+    if (g_current_state == state)
+        return;
+    
+    g_previous_state = g_current_state;
+    g_current_state = state;
+}
+
+// Function to handle tile placement logic
+void handle_mouse_input()
+{
+    if (gp_winner != NULL || is_board_full())
+        return;
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+    {
+        Vector2 mouse_position = GetMousePosition();
+
+        if (mouse_position.y < UI_OFFSET)
+            return;
+
+        int col = mouse_position.x / CELL_WIDTH;
+        int row = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
+        if (set_tile(row, col, gp_current_player->tile))
+        {
+            change_player_turn();
+        }
+    }
+}
+
+/*
+Change the current player turn
+*/
+void change_player_turn()
+{
+    // if current player is player one, change to player two, vice versa
+    if (gp_current_player == &g_player_one)
+        gp_current_player = &g_player_two;
+    else if (gp_current_player == &g_player_two)
+        gp_current_player = &g_player_one;
+}
+
 // main grid rendering function
 void render_grid()
 {
@@ -542,13 +555,22 @@ void render_text_ui()
 
 }
 
-
 void render_line(Move start, Move end, float thickness)
 {
     Vector2 start_position = {start.column * CELL_WIDTH + CELL_WIDTH / 2, start.row * CELL_HEIGHT + CELL_HEIGHT / 2 + UI_OFFSET};
     Vector2 end_position = {end.column * CELL_WIDTH + CELL_WIDTH / 2, end.row * CELL_HEIGHT + CELL_HEIGHT / 2 + UI_OFFSET};
     static const Color red_translucent = (Color){255, 0, 0, 150};
     DrawLineEx(start_position, end_position, thickness, red_translucent);
+}
+
+/*
+populate the grid according to tile input
+*/
+void populate_grid(Tile tile)
+{
+    for (int i = 0; i < ROW; i++)
+        for (int j = 0; j < COLUMN; j++)
+            g_grid[i][j] = tile;
 }
 
 /*
@@ -580,13 +602,43 @@ bool is_tile_placeable(int row, int col)
 }
 
 /*
-populate the grid according to tile input
+Returns 1 if the board is full, else return 0
 */
-void populate_grid(Tile tile)
+int is_board_full()
 {
     for (int i = 0; i < ROW; i++)
+    {
         for (int j = 0; j < COLUMN; j++)
-            g_grid[i][j] = tile;
+        {
+            if (g_grid[i][j] == EMPTY)
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+/*
+Evaluate the current board and return 1 if g_player_two has won, -1 if g_player_one has won.
+Reset the gp_winner pointer to NULL after evaluation. Mainly used for minimax algorithm.
+*/
+int evaluate(){
+    check_win_condition();
+
+    // if g_player_two has won, return 1, reset gp_winner to NULL
+    if (gp_winner == &g_player_two)
+    {
+        gp_winner = NULL;
+        return 1;
+    }
+    else if(gp_winner == &g_player_one)
+    {
+        gp_winner = NULL;
+        return -1;
+    }
+    
+    return 0;
 }
 
 /*
@@ -724,58 +776,6 @@ bool check_win_condition()
     }
 
     return false;
-}
-
-/*
-Change the current player turn
-*/
-void change_player_turn()
-{
-    // if current player is player one, change to player two, vice versa
-    if (gp_current_player == &g_player_one)
-        gp_current_player = &g_player_two;
-    else if (gp_current_player == &g_player_two)
-        gp_current_player = &g_player_one;
-}
-
-/*
-Returns 1 if the board is full, else return 0
-*/
-int is_board_full()
-{
-    for (int i = 0; i < ROW; i++)
-    {
-        for (int j = 0; j < COLUMN; j++)
-        {
-            if (g_grid[i][j] == EMPTY)
-            {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-/*
-Evaluate the current board and return 1 if g_player_two has won, -1 if g_player_one has won.
-Reset the gp_winner pointer to NULL after evaluation. Mainly used for minimax algorithm.
-*/
-int evaluate(){
-    check_win_condition();
-
-    // if g_player_two has won, return 1, reset gp_winner to NULL
-    if (gp_winner == &g_player_two)
-    {
-        gp_winner = NULL;
-        return 1;
-    }
-    else if(gp_winner == &g_player_one)
-    {
-        gp_winner = NULL;
-        return -1;
-    }
-    
-    return 0;
 }
 
 /*
