@@ -952,7 +952,7 @@ Move get_mini_max_best_move()
     if (g_game_difficulty_mode == MEDIUM)
         difficulty = 1;
     else if (g_game_difficulty_mode == HARD)
-        difficulty = (ROW * COLUMN) - 1;
+        difficulty = (ROW * COLUMN) - 1; // look ahead all the way to the end
 
     // initial best value to a very low value
     int best_val = -1000;
@@ -1029,7 +1029,7 @@ void read_ml_dataset(char file_name[])
         g_dataset_count++;
     }
 
-    printf("Total dataset count: %d\n", g_dataset_count);
+    fclose(dataset_file);
 }
 
 /*
@@ -1189,13 +1189,11 @@ Predicted_Result naive_bayes_predict(ML_Data_Row data)
     // compare whether the positive or negative is higher, the higher of those will be the predicted probability
     if (fmax(positive_probability, negative_probability) == positive_probability)
     {
-        printf("Positive\n");
         predicted_result.result = POSITIVE;
         predicted_result.score = positive_probability;
     }
     else
     {
-        printf("Negative\n");
         predicted_result.result = NEGATIVE;
         predicted_result.score = negative_probability;
     }
@@ -1221,10 +1219,12 @@ Move get_naive_bayes_best_move()
             // if cell is empty, attempt move and see if it is the best move
             if (g_grid[i][j] == EMPTY)
             {
+                // temporarily set the cell with the current player's tile
                 g_grid[i][j] = g_player_two.tile;
+                // Get the predicted result of the current grid
                 Predicted_Result predicted_result = naive_bayes_predict(get_current_grid());
+                // undo the move (backtrack)
                 g_grid[i][j] = EMPTY;
-                printf("predicted result for row: %d, col: %d is %d score:%g \n", i, j, predicted_result.result, predicted_result.score);
 
                 // Get the best move by comparing the score of each move, with positive prediction move having higher priority
                 if (predicted_result.result == POSITIVE || (predicted_result.result == NEGATIVE && !positive_move_found))
@@ -1244,7 +1244,7 @@ Move get_naive_bayes_best_move()
             }
         }
     }
-    printf("best move row: %d, col: %d\n", best_move.row, best_move.column);
+
     return best_move;
 }
 
@@ -1295,7 +1295,5 @@ Confusion_Matrix calculate_confusion_matrix()
     // accuracy is calculated as the number of all correct predictions divided by the total number of the datase
     confusion_matrix.accuracy = (confusion_matrix.true_positive + confusion_matrix.true_negative) / (confusion_matrix.true_positive + confusion_matrix.true_negative + confusion_matrix.probability_error);
 
-    printf("probability error: %g\n", confusion_matrix.probability_error);
-    printf("accuracy: %g\n", confusion_matrix.accuracy);
     return confusion_matrix;
 }
