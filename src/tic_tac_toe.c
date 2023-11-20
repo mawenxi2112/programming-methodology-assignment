@@ -189,7 +189,6 @@ int main(void)
     read_ml_dataset(NB_DATASET_FILE);
     GuiLoadStyle("resources/style_candy.rgs");
 
-
     // main game loop
     while (!WindowShouldClose())
     {
@@ -298,7 +297,7 @@ void update_game_render()
     // start drawing buffer
     BeginDrawing();
     // clear screen and set white
-    ClearBackground((Color){255,245,225,255});
+    ClearBackground((Color){255, 245, 225, 255});
     // render the grid of the game including the tiles
     render_grid();
     // render the text ui during the game
@@ -314,7 +313,7 @@ void update_menu()
 {
     // begin drawing buffer
     BeginDrawing();
-    ClearBackground((Color){255,245,225,255});
+    ClearBackground((Color){255, 245, 225, 255});
 
     const char *MENU_TITLE = "Tic Tac Toe";
 
@@ -403,7 +402,7 @@ void update_setting()
     // begin drawing buffer
     BeginDrawing();
     // clear the background
-    ClearBackground((Color){255,245,225,255});
+    ClearBackground((Color){255, 245, 225, 255});
 
     // if the escape button is pressed while in the settings, return back to main menu
     if (IsKeyReleased(KEY_ESCAPE))
@@ -448,7 +447,7 @@ void update_pause()
 {
     // begin drawing buffer and set white background
     BeginDrawing();
-    ClearBackground((Color){255,245,225,255});
+    ClearBackground((Color){255, 245, 225, 255});
 
     const char *TITLE = "Paused";
 
@@ -474,7 +473,7 @@ void update_gameover()
 {
     // begin drawing buffer and set white background
     BeginDrawing();
-    ClearBackground((Color){255,245,225,255});
+    ClearBackground((Color){255, 245, 225, 255});
 
     char *TITLE = "Player 1 Wins!";
 
@@ -626,7 +625,7 @@ void render_text_ui()
     // get the coord at half of the screen
     int x_coord = SCREEN_WIDTH / 2;
     // get the coord at 1/6 of the blank area
-    int y_coord = UI_OFFSET / 6 ;
+    int y_coord = UI_OFFSET / 6;
     int font_size = 40;
     char top_text[30] = "-";
 
@@ -953,7 +952,7 @@ Move get_mini_max_best_move()
     if (g_game_difficulty_mode == MEDIUM)
         difficulty = 1;
     else if (g_game_difficulty_mode == HARD)
-        difficulty = 8;
+        difficulty = (ROW * COLUMN) - 1;
 
     // initial best value to a very low value
     int best_val = -1000;
