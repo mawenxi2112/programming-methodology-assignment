@@ -893,7 +893,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
         return 0;
 
     // initalize a best value base on the current player (max or min)
-    int best = is_max ? -1000 : 1000;
+    int best_val = is_max ? -1000 : 1000;
 
     // loop through the board cells
     for (int i = 0; i < ROW; i++)
@@ -909,7 +909,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 int move_val = mini_max(depth + 1, !is_max, max_depth, alpha, beta);
 
                 // update the best value based on the current player (max or min)
-                best = is_max ? fmax(best, move_val) : fmin(best, move_val);
+                best_val = is_max ? fmax(best_val, move_val) : fmin(best_val, move_val);
 
                 // undo the move (backtrack)
                 g_grid[i][j] = EMPTY;
@@ -936,7 +936,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
         }
     }
 
-    return best;
+    return best_val;
 }
 
 /*
