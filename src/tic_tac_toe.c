@@ -183,10 +183,12 @@ int main(void)
 {
     // initialize the window and size using raylib's library
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Tic Tac Toe");
-    // Use
+    // load the texture for the cross and circle
     g_cross_circle_texture = LoadTexture("resources/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
     read_ml_dataset(NB_DATASET_FILE);
+    GuiLoadStyle("resources/style_candy.rgs");
+
 
     // main game loop
     while (!WindowShouldClose())
@@ -296,7 +298,7 @@ void update_game_render()
     // start drawing buffer
     BeginDrawing();
     // clear screen and set white
-    ClearBackground(RAYWHITE);
+    ClearBackground((Color){255,245,225,255});
     // render the grid of the game including the tiles
     render_grid();
     // render the text ui during the game
@@ -312,12 +314,12 @@ void update_menu()
 {
     // begin drawing buffer
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground((Color){255,245,225,255});
 
     const char *MENU_TITLE = "Tic Tac Toe";
 
     // draw the text for the title of the game
-    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, (Color){117, 64, 53, 255});
     // draw  the start button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
     {
@@ -401,7 +403,7 @@ void update_setting()
     // begin drawing buffer
     BeginDrawing();
     // clear the background
-    ClearBackground(RAYWHITE);
+    ClearBackground((Color){255,245,225,255});
 
     // if the escape button is pressed while in the settings, return back to main menu
     if (IsKeyReleased(KEY_ESCAPE))
@@ -413,7 +415,7 @@ void update_setting()
     const char *TITLE = "Setting";
 
     // draw the text of the settings
-    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, (Color){117, 64, 53, 255});
     // drawing the gui box for the different gamemodes
     GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int *)&g_current_gamemode);
 
@@ -427,10 +429,10 @@ void update_setting()
     {
         // Draw confusion matrix as a table, TP(True Positive), FP(False Positive), TN(True Negative), FN(False Negative)
         GuiGroupBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Confusion Matrix");
-        DrawText(TextFormat("TP: %g", g_current_confusion_matrix.true_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 10, 20, BLACK);
-        DrawText(TextFormat("FP: %g", g_current_confusion_matrix.false_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 30, 20, BLACK);
-        DrawText(TextFormat("TN: %g", g_current_confusion_matrix.true_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 50, 20, BLACK);
-        DrawText(TextFormat("FN: %g", g_current_confusion_matrix.false_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 70, 20, BLACK);
+        DrawText(TextFormat("TP: %g", g_current_confusion_matrix.true_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 10, 20, (Color){117, 64, 53, 255});
+        DrawText(TextFormat("FP: %g", g_current_confusion_matrix.false_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 30, 20, (Color){117, 64, 53, 255});
+        DrawText(TextFormat("TN: %g", g_current_confusion_matrix.true_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 50, 20, (Color){117, 64, 53, 255});
+        DrawText(TextFormat("FN: %g", g_current_confusion_matrix.false_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 70, 20, (Color){117, 64, 53, 255});
     }
 
     // print the return to main menu button
@@ -446,11 +448,11 @@ void update_pause()
 {
     // begin drawing buffer and set white background
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground((Color){255,245,225,255});
 
     const char *TITLE = "Paused";
 
-    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, (Color){117, 64, 53, 255});
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Resume"))
         set_current_state(GAME);
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
@@ -472,7 +474,7 @@ void update_gameover()
 {
     // begin drawing buffer and set white background
     BeginDrawing();
-    ClearBackground(RAYWHITE);
+    ClearBackground((Color){255,245,225,255});
 
     char *TITLE = "Player 1 Wins!";
 
@@ -491,7 +493,7 @@ void update_gameover()
     }
 
     // draw the title text for gameover
-    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, (Color){117, 64, 53, 255});
 
     // draw the restart button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
@@ -569,7 +571,7 @@ void render_grid()
             int x_coord = j * CELL_WIDTH;
             int y_coord = i * CELL_HEIGHT + UI_OFFSET;
             // draw rectangles for each cell
-            DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
+            DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, (Color){117, 64, 53, 255});
             // we render each tile
             render_tile(x_coord, y_coord, g_grid[i][j]);
         }
@@ -584,7 +586,7 @@ void render_grid()
             set_current_state(GAMEOVER);
         // draw the countdown timer
         const char *countdown_timer = TextFormat("Game will end in %.1f", (float)((GAME_END_DELAY + g_start_time) - g_elapsed_time));
-        DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, BLACK);
+        DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, (Color){117, 64, 53, 255});
         // if board is full and no winner, dont draw line, however if board is full but winner is found, draw line, else draw line if winner is found
         if (!is_board_full() || gp_winner != NULL)
             render_line(g_winner_start, g_winner_end, WIN_LINE_THICKNESS);
@@ -647,7 +649,7 @@ void render_text_ui()
     }
 
     // draw the text
-    DrawText(top_text, x_coord - MeasureText(top_text, font_size) / 2, y_coord, font_size, BLACK);
+    DrawText(top_text, x_coord - MeasureText(top_text, font_size) / 2, y_coord, font_size, (Color){117, 64, 53, 255});
 }
 
 /*
