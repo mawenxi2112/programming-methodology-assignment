@@ -7,7 +7,7 @@
 #define RAYGUI_IMPLEMENTATION
 #include <resources/raygui.h>
 
-// struct definitions
+// enum definitions
 typedef enum State
 {
     MENU,
