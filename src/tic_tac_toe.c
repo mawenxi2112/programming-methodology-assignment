@@ -46,32 +46,38 @@ typedef enum Tile
     CIRCLE
 } Tile;
 
-typedef enum Data_Result {
+typedef enum Data_Result
+{
     NEGATIVE,
     POSITIVE
 } Data_Result;
 
-typedef struct Move {
+typedef struct Move
+{
     int row;
     int column;
 } Move;
 
-typedef struct Player {
+typedef struct Player
+{
     Player_Type type;
     Tile tile;
 } Player;
 
-typedef struct ML_Data_Row {
+typedef struct ML_Data_Row
+{
     Tile tile[9];
     Data_Result result;
 } ML_Data_Row;
 
-typedef struct Predicted_Result {
+typedef struct Predicted_Result
+{
     Data_Result result;
     double score;
 } Predicted_Result;
 
-typedef struct Confusion_Matrix {
+typedef struct Confusion_Matrix
+{
     double true_positive;
     double false_positive;
     double true_negative;
@@ -81,7 +87,7 @@ typedef struct Confusion_Matrix {
 } Confusion_Matrix;
 
 // definitions for UI
-#define UI_OFFSET 150
+#define UI_OFFSET 60
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 #define BUTTON_WIDTH 300
@@ -168,9 +174,16 @@ Confusion_Matrix g_current_confusion_matrix;
 // 2,0 | 2,1 | 2,2
 // index of each grid
 
+/*
+Main function of the program
+Initiate certain variables and functions that are to be ran one time only
+Contains the main loop of the game
+*/
 int main(void)
 {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "tic tac toe");
+    // initialize the window and size using raylib's library
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Tic Tac Toe");
+    // Use
     g_cross_circle_texture = LoadTexture("resources/tictactoe.png");
     SetExitKey(0); // prevent esc from closing the window
     read_ml_dataset(NB_DATASET_FILE);
@@ -178,33 +191,33 @@ int main(void)
     // main game loop
     while (!WindowShouldClose())
     {
-        // if state changes, run the state init
+        // if state changes, means this state is just entered, run init function
         if (g_previous_state != g_current_state)
         {
             init();
             g_previous_state = g_current_state;
         }
-
+        // switch case to run the respective update loop for different game states
         switch (g_current_state)
         {
-            case MENU:
-                update_menu();
-                break;
-            case GAME:
-                update_game();
-                update_game_render();
-                break;
-            case SETTING:
-                update_setting();
-                break;
-            case GAMEOVER:
-                update_gameover();
-                break;
-            case PAUSE:
-                update_pause();
-                break;
-            default:
-                exit(1);
+        case MENU:
+            update_menu();
+            break;
+        case GAME:
+            update_game();
+            update_game_render();
+            break;
+        case SETTING:
+            update_setting();
+            break;
+        case GAMEOVER:
+            update_gameover();
+            break;
+        case PAUSE:
+            update_pause();
+            break;
+        default:
+            exit(1);
         }
     }
 
@@ -212,44 +225,55 @@ int main(void)
     return 0;
 }
 
+/*
+init function that runs once when state changes
+*/
 void init()
 {
     switch (g_current_state)
     {
-        case MENU:
-            SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-            break;
-        case GAME:
-            SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT + UI_OFFSET);
-            break;
-        case SETTING:
-            SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-            break;
-        case GAMEOVER:
-            SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-            break;
-        case PAUSE:
-            SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-            break;
-        default:
-            exit(1);
+    case MENU:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case GAME:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT + UI_OFFSET);
+        if (g_previous_state != PAUSE)
+            start_game();
+        break;
+    case SETTING:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case GAMEOVER:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    case PAUSE:
+        SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+        break;
+    default:
+        exit(1);
     }
 }
 
-// start a fresh game of tic tac toe function
+/*
+start a fresh game of tic tac toe function
+*/
 void start_game()
 {
+    // set all the grids to be empty
     populate_grid(EMPTY);
+    // if the currenmt gamemode is local, set player one and two to be human
     if (g_current_gamemode == LOCAL)
     {
         g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
         g_player_two = (Player){PLAYER_HUMAN, CROSS};
     }
+    // else if the current gamemode is minimax, set player one to be human and player two to be AI
     else if (g_current_gamemode == AI_MINIMAX)
     {
         g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
         g_player_two = (Player){PLAYER_AI, CROSS};
     }
+    // else if the current gamemode is machine learning, init relevant functions and set player one to be human and player two to be AI
     else if (g_current_gamemode == AI_ML)
     {
         shuffle_dataset();
@@ -259,103 +283,127 @@ void start_game()
         g_player_two = (Player){PLAYER_AI, CROSS};
     }
 
+    // set the starting player to be player one and clear the winner
     gp_current_player = &g_player_one;
     gp_winner = NULL;
 }
 
-// render update loop
-// functions related to rendering should reside here
+/*
+Render loop for all render related functions for the game
+*/
 void update_game_render()
 {
+    // start drawing buffer
     BeginDrawing();
     // clear screen and set white
     ClearBackground(RAYWHITE);
+    // render the grid of the game including the tiles
     render_grid();
+    // render the text ui during the game
     render_text_ui();
+    // end drawing buffer
     EndDrawing();
 }
 
-// menu update loop
+/*
+Update loop for the main menu
+*/
 void update_menu()
 {
+    // begin drawing buffer
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
     const char *MENU_TITLE = "Tic Tac Toe";
 
-    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, GRAY);
+    // draw the text for the title of the game
+    DrawText(MENU_TITLE, HALF_SCREEN_WIDTH - MeasureText(MENU_TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
+    // draw  the start button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Start Game"))
     {
         set_current_state(GAME);
-        start_game();
     }
+    // draw the setting button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Settings"))
     {
         set_current_state(SETTING);
     }
+
+    // draw the quit button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Quit"))
         CloseWindow();
 
+    // end drawing buffer
     EndDrawing();
 }
 
-// game logic update loop
-// functions related to game update / logic should reside here
+/*
+main game logic update loop
+*/
 void update_game()
 {
+    // if the escape button is pressed, set current state to pause
     if (IsKeyReleased(KEY_ESCAPE))
     {
         set_current_state(PAUSE);
         return;
     }
 
+    // stop updating game loop if winner is found or board is full
     if (gp_winner != NULL || is_board_full())
     {
         return;
     }
 
+    // different game logic for different game mode states
     switch (g_current_gamemode)
     {
-        case LOCAL:
-            // receive user input and place tile
+    case LOCAL:
+        // receive user input and place tile
+        handle_mouse_input();
+        break;
+    case AI_MINIMAX:
+        // receive user input and place tile
+        if (gp_current_player == &g_player_one)
+        {
             handle_mouse_input();
-            break;
-        case AI_MINIMAX:
-            // receive user input and place tile
-            if (gp_current_player == &g_player_one)
-            {
-                handle_mouse_input();
-            }
-            else if (gp_current_player == &g_player_two)
-            {
-                Move best_move = get_mini_max_best_move();
-                set_tile(best_move.row, best_move.column, g_player_two.tile);
-                change_player_turn();
-            }
-            break;
-        case AI_ML:
-            // receive user input and place tile
-            if (gp_current_player == &g_player_one)
-            {
-                handle_mouse_input();
-            }
-            else if (gp_current_player == &g_player_two)
-            {
-                Move best_move = get_naive_bayes_best_move();
-                set_tile(best_move.row, best_move.column, g_player_two.tile);
-                change_player_turn();
-            }
-            break;
+        }
+        else if (gp_current_player == &g_player_two)
+        {
+            // get the best move from minimax algo and then set the tile and change player turn
+            Move best_move = get_mini_max_best_move();
+            set_tile(best_move.row, best_move.column, g_player_two.tile);
+            change_player_turn();
+        }
+        break;
+    case AI_ML:
+        // receive user input and place tile
+        if (gp_current_player == &g_player_one)
+        {
+            handle_mouse_input();
+        }
+        else if (gp_current_player == &g_player_two)
+        {
+            // get the best move from naive bayes algo and then set tile and change player turn
+            Move best_move = get_naive_bayes_best_move();
+            set_tile(best_move.row, best_move.column, g_player_two.tile);
+            change_player_turn();
+        }
+        break;
     }
 }
 
-
-// setting update loop
+/*
+update setting loop
+*/
 void update_setting()
 {
+    // begin drawing buffer
     BeginDrawing();
+    // clear the background
     ClearBackground(RAYWHITE);
 
+    // if the escape button is pressed while in the settings, return back to main menu
     if (IsKeyReleased(KEY_ESCAPE))
     {
         set_current_state(MENU);
@@ -364,8 +412,9 @@ void update_setting()
 
     const char *TITLE = "Setting";
 
+    // draw the text of the settings
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
-
+    // drawing the gui box for the different gamemodes
     GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Local;Mini Max AI;Machine Learning", (int *)&g_current_gamemode);
 
     // if current gamemode is minimax, show difficulty setting, else if current gamemode is ML, show confusion matrix as button 2
@@ -373,8 +422,10 @@ void update_setting()
     {
         GuiComboBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Easy;Medium;Hard", (int *)&g_game_difficulty_mode);
     }
-    else if(g_current_gamemode == AI_ML){
-        //Draw confusion matrix as a table, TP(True Positive), FP(False Positive), TN(True Negative), FN(False Negative)
+    // if the gamemode is ML, we show the confusion matrix
+    else if (g_current_gamemode == AI_ML)
+    {
+        // Draw confusion matrix as a table, TP(True Positive), FP(False Positive), TN(True Negative), FN(False Negative)
         GuiGroupBox((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Confusion Matrix");
         DrawText(TextFormat("TP: %g", g_current_confusion_matrix.true_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 10, 20, BLACK);
         DrawText(TextFormat("FP: %g", g_current_confusion_matrix.false_positive), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 30, 20, BLACK);
@@ -382,14 +433,18 @@ void update_setting()
         DrawText(TextFormat("FN: %g", g_current_confusion_matrix.false_negative), HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2 + 10, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2 + 70, 20, BLACK);
     }
 
+    // print the return to main menu button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         set_current_state(MENU);
     EndDrawing();
 }
 
-// pause update loop
+/*
+pause screen update loop
+*/
 void update_pause()
 {
+    // begin drawing buffer and set white background
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
@@ -406,17 +461,22 @@ void update_pause()
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 2.4, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         set_current_state(MENU);
 
+    // clear drawing buffer
     EndDrawing();
 }
 
-// SHOW WIN GAME MENU
+/*
+gameover screen udpate loop
+*/
 void update_gameover()
 {
+    // begin drawing buffer and set white background
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
     char *TITLE = "Player 1 Wins!";
 
+    // check if there is a winner and set the title accordingly
     if (gp_winner == &g_player_two && g_player_two.type == PLAYER_AI)
     {
         TITLE = "AI wins!";
@@ -430,43 +490,55 @@ void update_gameover()
         TITLE = "Draw!";
     }
 
+    // draw the title text for gameover
     DrawText(TITLE, HALF_SCREEN_WIDTH - MeasureText(TITLE, 60) / 2, HALF_SCREEN_HEIGHT / 2, 60, BLACK);
 
+    // draw the restart button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Restart"))
     {
         set_current_state(GAME);
-        start_game();
     }
+    // draw the return to main menu button
     if (GuiButton((Rectangle){HALF_SCREEN_WIDTH - BUTTON_WIDTH / 2, HALF_SCREEN_HEIGHT - BUTTON_HEIGHT / 2 + BUTTON_HEIGHT * 1.2, BUTTON_WIDTH, BUTTON_HEIGHT}, "Return to Main Menu"))
         set_current_state(MENU);
 
     EndDrawing();
 }
 
+/*
+function to set the current state of the game
+*/
 void set_current_state(State state)
 {
     if (g_current_state == state)
         return;
-    
+
     g_previous_state = g_current_state;
     g_current_state = state;
 }
 
-// Function to handle tile placement logic
+/*
+function to handle mouse input from user
+*/
 void handle_mouse_input()
 {
+    // fail safe check, if game is over player should not be able to input anything
     if (gp_winner != NULL || is_board_full())
         return;
 
+    // if left click is pressed, get the position and try to place a tile
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
     {
         Vector2 mouse_position = GetMousePosition();
 
+        // mouse click ignore if its in the empty space above the grid
         if (mouse_position.y < UI_OFFSET)
             return;
 
+        // int division to get the row and column of the grid
         int col = mouse_position.x / CELL_WIDTH;
         int row = (mouse_position.y - UI_OFFSET) / CELL_HEIGHT;
+        // try to set the tile, and if it is successful change player turn
         if (set_tile(row, col, gp_current_player->tile))
         {
             change_player_turn();
@@ -489,24 +561,29 @@ void change_player_turn()
 // main grid rendering function
 void render_grid()
 {
+    // nested loop to go through every cell in the grid
     for (int i = 0; i < ROW; i++)
         for (int j = 0; j < COLUMN; j++)
         {
+            // calculate the coordinates for each tile
             int x_coord = j * CELL_WIDTH;
             int y_coord = i * CELL_HEIGHT + UI_OFFSET;
+            // draw rectangles for each cell
             DrawRectangleLines(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, BLACK);
-
+            // we render each tile
             render_tile(x_coord, y_coord, g_grid[i][j]);
-            //const char *tile_index = TextFormat("[%d, %d]", i, j);
-            //DrawText(tile_index, x_coord + CELL_HALF_WIDTH - MeasureText(tile_index, 20) / 2, y_coord + CELL_HALF_WIDTH - 10, 20, BLACK);
         }
 
+    // if the game is over, we draw the line and also show a countdown
     if (gp_winner != NULL || is_board_full())
     {
+        // get the current elapsed time
         g_elapsed_time = (double)(clock() - g_start_time) / CLOCKS_PER_SEC;
+        // if elapsed time has crossed more than the delay, we change the state to gameover
         if (g_elapsed_time >= GAME_END_DELAY + g_start_time)
             set_current_state(GAMEOVER);
-        const char* countdown_timer = TextFormat("Game will end in %.2f", (float)((GAME_END_DELAY + g_start_time) - g_elapsed_time));
+        // draw the countdown timer
+        const char *countdown_timer = TextFormat("Game will end in %.1f", (float)((GAME_END_DELAY + g_start_time) - g_elapsed_time));
         DrawText(countdown_timer, SCREEN_WIDTH / 2 - MeasureText(countdown_timer, 50) / 2, SCREEN_HEIGHT / 2 + UI_OFFSET, 50, BLACK);
         // if board is full and no winner, dont draw line, however if board is full but winner is found, draw line, else draw line if winner is found
         if (!is_board_full() || gp_winner != NULL)
@@ -514,47 +591,68 @@ void render_grid()
     }
 }
 
-// function to render a specific tile
+/*
+Function to render tile individual tiles
+*/
 void render_tile(int x_coord, int y_coord, Tile tile)
-{   
+{
+    // create a rectangle variable for where we want our tile to be
     Rectangle destination = {x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT};
     Rectangle source;
 
+    // switch case to render the tile according to the tile type
     switch (tile)
     {
     case CROSS:
         source = (Rectangle){0, 0, 100, 100};
-        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, WHITE);
         break;
     case CIRCLE:
         source = (Rectangle){100, 0, 100, 100};
-        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, GRAY);
+        DrawTexturePro(g_cross_circle_texture, source, destination, (Vector2){0, 0}, 0, WHITE);
         break;
     case EMPTY:
         break;
     }
 }
 
-// render function for the title text
+/*
+function to render the text ui at the top of game screen
+*/
 void render_text_ui()
 {
-    if (gp_winner != NULL)
+    // get the coord at half of the screen
+    int x_coord = SCREEN_WIDTH / 2;
+    // get the coord at 1/6 of the blank area
+    int y_coord = UI_OFFSET / 6 ;
+    int font_size = 40;
+    char top_text[30] = "-";
+
+    // if the game is over, print respective title
+    if (gp_winner != NULL || is_board_full())
     {
         if (gp_winner == &g_player_one)
-            DrawText("Player 1 wins!", 10, 10, 20, BLACK);
+            strcpy(top_text, "Player 1 wins!");
         else if (gp_winner == &g_player_two)
-            DrawText("Player 2 wins!", 10, 10, 20, BLACK);
+            strcpy(top_text, "Player 2 wins!");
+        else if (is_board_full())
+            strcpy(top_text, "Draw!");
     }
-    else
+    else // if game is still going on print the current player turn
     {
         if (gp_current_player == &g_player_one)
-            DrawText("Player 1's turn", 10, 10, 20, BLACK);
+            strcpy(top_text, "Player 1's turn");
         else if (gp_current_player)
-            DrawText("Player 2's turn", 10, 10, 20, BLACK);
+            strcpy(top_text, "Player 2's turn");
     }
 
+    // draw the text
+    DrawText(top_text, x_coord - MeasureText(top_text, font_size) / 2, y_coord, font_size, BLACK);
 }
 
+/*
+Function to render the game over line using a start and end position and a thickness
+*/
 void render_line(Move start, Move end, float thickness)
 {
     Vector2 start_position = {start.column * CELL_WIDTH + CELL_WIDTH / 2, start.row * CELL_HEIGHT + CELL_HEIGHT / 2 + UI_OFFSET};
@@ -582,7 +680,7 @@ bool set_tile(int row, int col, Tile tile)
     if (is_tile_placeable(row, col))
     {
         g_grid[row][col] = tile;
-        if(check_win_condition())
+        if (check_win_condition())
             g_start_time = (double)clock() / CLOCKS_PER_SEC;
         return true;
     }
@@ -623,7 +721,8 @@ int is_board_full()
 Evaluate the current board and return 1 if g_player_two has won, -1 if g_player_one has won.
 Reset the gp_winner pointer to NULL after evaluation. Mainly used for minimax algorithm.
 */
-int evaluate(){
+int evaluate()
+{
     check_win_condition();
 
     // if g_player_two has won, return 1, reset gp_winner to NULL
@@ -632,17 +731,19 @@ int evaluate(){
         gp_winner = NULL;
         return 1;
     }
-    else if(gp_winner == &g_player_one)
+    else if (gp_winner == &g_player_one)
     {
         gp_winner = NULL;
         return -1;
     }
-    
+
     return 0;
 }
 
 /*
 Returns a boolean value if the current grid is a winning condition and updates gp_winner
+Variables g_winner_start and g_winner_end are the start and end position of the winning line
+It returns a boolean if there is a win, but also updates the gp_winner pointer to the winner
 */
 bool check_win_condition()
 {
@@ -786,8 +887,10 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
 {
     int score = evaluate();
 
-    if (score != 0) return score;
-    if (is_board_full() || depth == max_depth) return 0;
+    if (score != 0)
+        return score;
+    if (is_board_full() || depth == max_depth)
+        return 0;
 
     // initalize a best value base on the current player (max or min)
     int best = is_max ? -1000 : 1000;
@@ -810,7 +913,7 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
 
                 // undo the move (backtrack)
                 g_grid[i][j] = EMPTY;
-                
+
                 // alpha-beta pruning codes
                 if (is_max)
                 {
@@ -820,14 +923,14 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
                 {
                     beta = fmin(beta, move_val);
                 }
-                
+
                 /*
-                if beta is less than or equal to alpha, break out of the loop 
+                if beta is less than or equal to alpha, break out of the loop
                 as the rest of the moves will not be considered
-                */ 
+                */
                 if (beta <= alpha)
                 {
-                    break; 
+                    break;
                 }
             }
         }
@@ -840,14 +943,14 @@ int mini_max(int depth, int is_max, int max_depth, int alpha, int beta)
 Returns the best move for the minimax player using the minimax algorithm
 */
 Move get_mini_max_best_move()
-{   
+{
     // set initial difficult of miniMax mod to easy to look only 1 move ahead
     int difficulty = 0;
 
     // if difficulty is medium or hard update difficulty
-    if(g_game_difficulty_mode == MEDIUM)
-        difficulty = 1; 
-    else if(g_game_difficulty_mode == HARD)
+    if (g_game_difficulty_mode == MEDIUM)
+        difficulty = 1;
+    else if (g_game_difficulty_mode == HARD)
         difficulty = 8;
 
     // initial best value to a very low value
@@ -855,7 +958,7 @@ Move get_mini_max_best_move()
 
     // initialize best move row and column value
     Move best_move = {-1, -1};
- 
+
     // loop through the board cells
     for (int i = 0; i < ROW; i++)
     {
@@ -917,10 +1020,10 @@ void read_ml_dataset(char file_name[])
 
         // reverse search line and get the last token which is either POSTIIVE or NEGATIVE
         char *token = strrchr(line, ',') + 1;
-        
+
         // set the current row result to the token value positive or negative
         g_dataset_array[g_dataset_count].result = strcmp(token, "positive") == 0 ? POSITIVE : NEGATIVE;
-        
+
         // g_dataset_count is the total number of lines in dataset
         g_dataset_count++;
     }
@@ -936,7 +1039,7 @@ void shuffle_dataset()
     // fisher yates shuffle
     // initialize random seed so that the shuffle is different each time
     srand(time(NULL));
-    
+
     // loop through the dataset array and swap the current index with a random index
     for (int i = g_dataset_count - 1; i > 0; i--)
     {
@@ -970,7 +1073,7 @@ void naive_bayes_learn(float training_data_weight)
 
     // loop through the training data and calculate the probability of each tile
     for (int i = 0; i < training_data_count; i++)
-    {   
+    {
         // get the current training data
         ML_Data_Row current_row = g_dataset_array[i];
 
@@ -994,17 +1097,17 @@ void naive_bayes_learn(float training_data_weight)
         for (int row = 0; row < 9; row++)
         {
             switch (current_row.tile[row])
-                {
-                    case CROSS:
-                        g_naive_bayes_probability[row][0 + row_offset]++;
-                        break;
-                    case CIRCLE:
-                        g_naive_bayes_probability[row][1 + row_offset]++;
-                        break;
-                    case EMPTY:
-                        g_naive_bayes_probability[row][2 + row_offset]++;
-                        break;
-                }
+            {
+            case CROSS:
+                g_naive_bayes_probability[row][0 + row_offset]++;
+                break;
+            case CIRCLE:
+                g_naive_bayes_probability[row][1 + row_offset]++;
+                break;
+            case EMPTY:
+                g_naive_bayes_probability[row][2 + row_offset]++;
+                break;
+            }
         }
     }
 
@@ -1067,18 +1170,18 @@ Predicted_Result naive_bayes_predict(ML_Data_Row data)
     {
         switch (data.tile[i])
         {
-            case CROSS:
-                positive_probability *= g_naive_bayes_probability[i][0];
-                negative_probability *= g_naive_bayes_probability[i][3];
-                break;
-            case CIRCLE:
-                positive_probability *= g_naive_bayes_probability[i][1];
-                negative_probability *= g_naive_bayes_probability[i][4];
-                break;
-            case EMPTY:
-                positive_probability *= g_naive_bayes_probability[i][2];
-                negative_probability *= g_naive_bayes_probability[i][5];
-                break;
+        case CROSS:
+            positive_probability *= g_naive_bayes_probability[i][0];
+            negative_probability *= g_naive_bayes_probability[i][3];
+            break;
+        case CIRCLE:
+            positive_probability *= g_naive_bayes_probability[i][1];
+            negative_probability *= g_naive_bayes_probability[i][4];
+            break;
+        case EMPTY:
+            positive_probability *= g_naive_bayes_probability[i][2];
+            negative_probability *= g_naive_bayes_probability[i][5];
+            break;
         }
     }
 
@@ -1113,7 +1216,7 @@ Move get_naive_bayes_best_move()
     for (int i = 0; i < ROW; i++)
     {
         for (int j = 0; j < COLUMN; j++)
-        {   
+        {
             // if cell is empty, attempt move and see if it is the best move
             if (g_grid[i][j] == EMPTY)
             {
@@ -1161,19 +1264,19 @@ Confusion_Matrix calculate_confusion_matrix()
         Predicted_Result predicted_result = naive_bayes_predict(current_row);
 
         if (predicted_result.result == current_row.result)
-        {   
+        {
             if (predicted_result.result == POSITIVE)
                 // predicted result is positive and actual result is positive
-                confusion_matrix.true_positive++; 
+                confusion_matrix.true_positive++;
             else
                 // predicted result is negative and actual result is negative
-                confusion_matrix.true_negative++; 
+                confusion_matrix.true_negative++;
         }
         else
         {
             if (predicted_result.result == POSITIVE)
                 // predicted result is positive and actual result is negative
-                confusion_matrix.false_positive++; 
+                confusion_matrix.false_positive++;
             else
                 // predicted result is negative and actual result is positive
                 confusion_matrix.false_negative++;
