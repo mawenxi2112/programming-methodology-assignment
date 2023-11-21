@@ -26,9 +26,15 @@ The current executables in the `\bin` folders can be launch and played.
 
 If current executables in the `\bin` folders are unable to run, the following instructions will provide a guide on how to compile the game for both Windows and Mac osx.
 
-Delete both `\bin\tic_tac_toe_win.exe` and `\bin\tic_tac_toe_mac` before proceeding. Leave the resource folder untouched.
+Delete both `\bin\tic_tac_toe_win.exe` or `\bin\tic_tac_toe_mac` depending on your system operating system before proceeding. Leave the resource folder untouched.
 
-Make sure your present working directory is at the root folder of the project.
+#### Download Raylib
+
+Firstly ensure that Raylib is installed on your current computer
+
+Installation guide for [Windows](https://github.com/raysan5/raylib/wiki/Working-on-Windows) and [MAC OSX](https://github.com/raysan5/raylib/wiki/Working-on-macOS)
+
+Next make sure your present working directory is at the root folder of the project.
 
 `ls -l` (mac) / `dir` (windows) should show makefile as one of of the files in the current directory.
 
@@ -59,7 +65,7 @@ The generated executables are located at `\bin` as either `.\bin\tic_tac_toe_win
 
 ## Additional notes
 
-Raylib installation is not required to launch the game. The `\bin` folder can be distributed as a standalone version of the game.
+Raylib installation is not required to launch the game but its required to compile the game. The `\bin` folder can be distributed as a standalone version of the game.
 
 Raylib (v4.5.0) is included in the project folder in order to simplify steps to build the executables.
 
