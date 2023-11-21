@@ -115,7 +115,7 @@ typedef struct Confusion_Matrix
 #define MAX_DATASET_SIZE 958 // number of datasets (rows of data)
 #define MAX_DATAROW_SIZE 28 // the max number of char in each row of data
 #define TRAINING_DATA_WEIGHT 0.8 // the percentage of datasets to be used as training data
-#define NB_DATASET_FILE "resources/tictactoe.txt" // the file path for where the datasets reside
+#define NB_DATASET_FILE "resources/tic-tac-toe.data" // the file path for where the datasets reside
 
 // function prototypes for game logic
 void init();
