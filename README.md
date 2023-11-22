@@ -16,6 +16,16 @@ Project demo video can be found in this youtube link:  [https://youtu.be/Po9qWrZ
 
 * **Player vs Machine Learning (Naive Bayes)**: Players can challenge an ML opponent that uses machine learning model trained with the Naive Bayes classification algorithm. The testing results include a confusion matrix, providing insights into the model's performance.
 
+## Project folders
+
+`\src` contains the source code of the project.
+
+`\resource` contains the various files (images / ML data) for the project.
+
+`\bin` contains the compiled game and resource files for both Windows and MAC OSX.
+
+`\raylib-master` contains the RayLib library (v4.5.0) used for compiling the game. (installation and set up of RayLib is needed)
+
 ## How to play
 
 Download the game repository. You can either download the zip file, or clone the repository.
