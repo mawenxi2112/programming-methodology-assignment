@@ -97,24 +97,24 @@ typedef struct Confusion_Matrix
 } Confusion_Matrix;
 
 // definitions for UI
-#define UI_OFFSET 60 // offset for the space at the top of the screen
-#define SCREEN_WIDTH 800 // set the screen width 
-#define SCREEN_HEIGHT 800 // set the screen height
-#define BUTTON_WIDTH 300 // set the generic button width
-#define BUTTON_HEIGHT 100 // set the generic buttons height
-#define COLUMN 3 // set the number of columns in the tic tac toe
-#define ROW 3 // set the number of rows in the tic tac toe
-#define GAME_END_DELAY 5 // set the countdown delay 
+#define UI_OFFSET 60                                // offset for the space at the top of the screen
+#define SCREEN_WIDTH 800                            // set the screen width
+#define SCREEN_HEIGHT 800                           // set the screen height
+#define BUTTON_WIDTH 300                            // set the generic button width
+#define BUTTON_HEIGHT 100                           // set the generic buttons height
+#define COLUMN 3                                    // set the number of columns in the tic tac toe
+#define ROW 3                                       // set the number of rows in the tic tac toe
+#define GAME_END_DELAY 5                            // set the countdown delay
 #define TEXTURE_FILE_PATH "resources/tictactoe.png" // the file path for the texture of tic tac toe
-#define GUI_FILE_PATH "resources/style_candy.rgs" // the theme config file path for the gui
-#define BACKGROUND_COLOUR (Color){255, 245, 225, 255} // the background colour using a color struct
-#define TITLE_COLOUR (Color){117, 64, 53, 255} // the title colour using a color struct
-#define TITLE_FONT_SIZE 60 // title font size
+#define GUI_FILE_PATH "resources/style_candy.rgs"   // the theme config file path for the gui
+#define BACKGROUND_COLOUR (Color) { 255, 245, 225, 255 } // the background colour using a color struct
+#define TITLE_COLOUR (Color) { 117, 64, 53, 255 }   // the title colour using a color struct
+#define TITLE_FONT_SIZE 60                          // title font size
 
 // definitions for ML
-#define MAX_DATASET_SIZE 958 // number of datasets (rows of data)
-#define MAX_DATAROW_SIZE 28 // the max number of char in each row of data
-#define TRAINING_DATA_WEIGHT 0.8 // the percentage of datasets to be used as training data
+#define MAX_DATASET_SIZE 958                         // number of datasets (rows of data)
+#define MAX_DATAROW_SIZE 28                          // the max number of char in each row of data
+#define TRAINING_DATA_WEIGHT 0.8                     // the percentage of datasets to be used as training data
 #define NB_DATASET_FILE "resources/tic-tac-toe.data" // the file path for where the datasets reside
 
 // function prototypes for game logic
@@ -158,30 +158,30 @@ Move get_naive_bayes_best_move();
 Confusion_Matrix calculate_confusion_matrix();
 
 // global constants for UI
-const int CELL_WIDTH = SCREEN_WIDTH / COLUMN; // cell width is derived from width divided by no. of column
-const int CELL_HEIGHT = SCREEN_HEIGHT / ROW; // cell height is derived from height divided by no. of rows
-const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2; // half screen width is from dividing the screen width by 2
+const int CELL_WIDTH = SCREEN_WIDTH / COLUMN;       // cell width is derived from width divided by no. of column
+const int CELL_HEIGHT = SCREEN_HEIGHT / ROW;        // cell height is derived from height divided by no. of rows
+const float HALF_SCREEN_WIDTH = SCREEN_WIDTH / 2;   // half screen width is from dividing the screen width by 2
 const float HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2; // half screen height is from dividing the screen height by 2
-const float WIN_LINE_THICKNESS = CELL_WIDTH / 4; // the winning line thickness is a quarter of a cell size
+const float WIN_LINE_THICKNESS = CELL_WIDTH / 4;    // the winning line thickness is a quarter of a cell size
 
 // global variables for game logic
-Texture2D g_cross_circle_texture; // texture2D containing the cross and circle texture
-clock_t g_start_time, g_elapsed_time; // clock variable for counting elapsed time
-Tile g_grid[ROW][COLUMN]; // tile2D array that holds the value of the whole tic tac toe grid
-Player g_player_one, g_player_two; // player struct variables for the two players
-Player *gp_current_player; // pointer variable to the player struct, either player one or two
-Player *gp_winner; // pointer variable to the winning player
-Move g_winner_start, g_winner_end; // move struct variable that stores the start and end location 
-Gamemode g_current_gamemode; // gamemode struct variable that holds the current gamemode
-DifficultyMode g_game_difficulty_mode; // difficulty variable that holds the current difficulty for mini max AI
+Texture2D g_cross_circle_texture;                      // texture2D containing the cross and circle texture
+clock_t g_start_time, g_elapsed_time;                  // clock variable for counting elapsed time
+Tile g_grid[ROW][COLUMN];                              // tile2D array that holds the value of the whole tic tac toe grid
+Player g_player_one, g_player_two;                     // player struct variables for the two players
+Player *gp_current_player;                             // pointer variable to the player struct, either player one or two
+Player *gp_winner;                                     // pointer variable to the winning player
+Move g_winner_start, g_winner_end;                     // move struct variable that stores the start and end location
+Gamemode g_current_gamemode;                           // gamemode struct variable that holds the current gamemode
+DifficultyMode g_game_difficulty_mode;                 // difficulty variable that holds the current difficulty for mini max AI
 State g_previous_state = NONE, g_current_state = MENU; // state variable that holds the current and previous game state
 
 // global variables for ML logic
-ML_Data_Row g_dataset_array[MAX_DATASET_SIZE]; // array of ML_data_row struct that contains each line for the dataset
-int g_dataset_count = 0; // int to count how many lines of dataset
-double g_naive_bayes_probability[9][6]; // 2d array of a double for each tile and its possible tile and result (9 positions, 3 type of tiles and 2 results)
+ML_Data_Row g_dataset_array[MAX_DATASET_SIZE];         // array of ML_data_row struct that contains each line for the dataset
+int g_dataset_count = 0;                               // int to count how many lines of dataset
+double g_naive_bayes_probability[9][6];                // 2d array of a double for each tile and its possible tile and result (9 positions, 3 type of tiles and 2 results)
 double g_positive_counter = 0, g_negative_counter = 0; // counter for the number of positive and negative results, also used for prior probability
-Confusion_Matrix g_current_confusion_matrix; // a struct containing all the relevant values for a confusion matrix
+Confusion_Matrix g_current_confusion_matrix;           // a struct containing all the relevant values for a confusion matrix
 
 // current grid design, row = 3, column = 3
 // 0,0 | 0,1 | 0,2
@@ -1169,9 +1169,9 @@ ML_Data_Row get_current_grid()
                     current_row.tile[i * 3 + j] = CROSS;
                 else if (g_grid[i][j] == CROSS)
                     current_row.tile[i * 3 + j] = CIRCLE;
-                else 
+                else
                     current_row.tile[i * 3 + j] = g_grid[i][j];
-            }   
+            }
             else
                 current_row.tile[i * 3 + j] = g_grid[i][j];
         }
