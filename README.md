@@ -4,6 +4,8 @@
 
 This C program is a Tic Tac Toe game developed using the [Raylib Library](https://github.com/raysan5/raylib), featuring a Graphical User Interface (GUI) and various game modes. The game supports multiplayer mode, player vs AI with a minimax algorithm at three difficulty levels (easy, medium, hard), and player vs Machine Learning using Naive Bayes classification. Additionally, the Machine Learning mode provides a confusion matrix for evaluating the testing results.
 
+Project demo video can be found in this youtube link:  [https://youtu.be/Po9qWrZv5X4](https://youtu.be/Po9qWrZv5X4)
+
 ## Features
 
 * **Graphical User Interface (GUI)**: The game utilizes raylib to create a interactive user interface
