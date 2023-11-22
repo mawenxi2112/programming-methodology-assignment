@@ -280,14 +280,14 @@ void start_game()
     // if the currenmt gamemode is local, set player one and two to be human
     if (g_current_gamemode == LOCAL)
     {
-        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
-        g_player_two = (Player){PLAYER_HUMAN, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CROSS};
+        g_player_two = (Player){PLAYER_HUMAN, CIRCLE};
     }
     // else if the current gamemode is minimax, set player one to be human and player two to be AI
     else if (g_current_gamemode == AI_MINIMAX)
     {
-        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
-        g_player_two = (Player){PLAYER_AI, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CROSS};
+        g_player_two = (Player){PLAYER_AI, CIRCLE};
     }
     // else if the current gamemode is machine learning, init relevant functions and set player one to be human and player two to be AI
     else if (g_current_gamemode == AI_ML)
@@ -295,8 +295,8 @@ void start_game()
         shuffle_dataset();
         naive_bayes_learn(TRAINING_DATA_WEIGHT);
         g_current_confusion_matrix = calculate_confusion_matrix();
-        g_player_one = (Player){PLAYER_HUMAN, CIRCLE};
-        g_player_two = (Player){PLAYER_AI, CROSS};
+        g_player_one = (Player){PLAYER_HUMAN, CROSS};
+        g_player_two = (Player){PLAYER_AI, CIRCLE};
     }
 
     // set the starting player to be player one and clear the winner
@@ -1159,7 +1159,21 @@ ML_Data_Row get_current_grid()
     {
         for (int j = 0; j < COLUMN; j++)
         {
-            current_row.tile[i * 3 + j] = g_grid[i][j];
+            /*
+            As the ML data set is trained to predict X to win, this function must be modular
+            to account for the AI player to be either X or O
+            */
+            if (g_player_two.tile == CIRCLE)
+            {
+                if (g_grid[i][j] == CIRCLE)
+                    current_row.tile[i * 3 + j] = CROSS;
+                else if (g_grid[i][j] == CROSS)
+                    current_row.tile[i * 3 + j] = CIRCLE;
+                else 
+                    current_row.tile[i * 3 + j] = g_grid[i][j];
+            }   
+            else
+                current_row.tile[i * 3 + j] = g_grid[i][j];
         }
     }
 
