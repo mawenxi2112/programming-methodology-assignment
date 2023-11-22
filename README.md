@@ -20,7 +20,7 @@ Project demo video can be found in this youtube link:  [https://youtu.be/Po9qWrZ
 
 `\src` contains the source code of the project.
 
-`\resource` contains the various files (images / ML data) for the project.
+`\resources` contains the various files (images / ML data) for the project.
 
 `\bin` contains the compiled game and resource files for both Windows and MAC OSX.
 
