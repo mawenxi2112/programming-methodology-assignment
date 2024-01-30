@@ -1,4 +1,4 @@
-# CSC1103 Programming methodology
+# C Programming Methodology
 
 ## Program sypnopsis
 
